@@ -4,9 +4,13 @@ import Navigation from './components/Navigation';
 import Dashboard from './pages/Dashboard';
 import Transaktionen from './pages/Transaktionen';
 import Auswertung from './pages/Auswertung';
+import { LegalModal } from './components/LegalModal';
+import { legalData } from './legal/legalData';
 
 function AppContent() {
   const [activePage, setActivePage] = useState('dashboard');
+  const [legalView, setLegalView] = useState(null);
+  const logoSrc = `${import.meta.env.BASE_URL}assets/veit-bds-logo.png`;
 
   function renderPage() {
     switch (activePage) {
@@ -23,6 +27,54 @@ function AppContent() {
       <main className="app-main">
         {renderPage()}
       </main>
+      <footer className="legal-footer">
+        <div className="legal-footer-inner">
+          {legalData.website ? (
+            <a
+              href={legalData.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="legal-branding legal-branding--link"
+            >
+              <img
+                src={logoSrc}
+                alt="Veit-BDS"
+                className="legal-branding-logo"
+                onError={(event) => { event.currentTarget.style.display = 'none'; }}
+              />
+              <span>
+                Gebaut von <strong>Veit-BDS</strong>
+              </span>
+            </a>
+          ) : (
+            <div className="legal-branding">
+              <img
+                src={logoSrc}
+                alt="Veit-BDS"
+                className="legal-branding-logo"
+                onError={(event) => { event.currentTarget.style.display = 'none'; }}
+              />
+              <span>
+                Gebaut von <strong>Veit-BDS</strong>
+              </span>
+            </div>
+          )}
+
+          {(legalData.name || legalData.email) && (
+            <div className="legal-footer-links">
+              <button type="button" onClick={() => setLegalView('impressum')}>
+                Impressum
+              </button>
+              <button type="button" onClick={() => setLegalView('datenschutz')}>
+                Datenschutz
+              </button>
+            </div>
+          )}
+        </div>
+      </footer>
+      {legalView && (
+        <LegalModal view={legalView} onClose={() => setLegalView(null)} />
+      )}
     </div>
   );
 }

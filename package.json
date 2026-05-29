@@ -5,6 +5,7 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "node node_modules/vite/bin/vite.js",
+    "build": "node node_modules/vite/bin/vite.js build",
     "build:web": "node node_modules/vite/bin/vite.js build --outDir dist-web",
     "electron:dev": "concurrently \"node node_modules/vite/bin/vite.js\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "build:desktop": "node node_modules/vite/bin/vite.js build --outDir dist && electron-builder",
