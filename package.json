@@ -1,0 +1,66 @@
+{
+  "name": "monthly-balance",
+  "version": "1.0.0",
+  "description": "Anwendung zur monatlichen Bilanz einer Privatperson",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "node node_modules/vite/bin/vite.js",
+    "build:web": "node node_modules/vite/bin/vite.js build --outDir dist-web",
+    "electron:dev": "concurrently \"node node_modules/vite/bin/vite.js\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "build:desktop": "node node_modules/vite/bin/vite.js build --outDir dist && electron-builder",
+    "lint": "eslint src --ext .js,.jsx",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.10.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^1.2.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jsdom": "^29.1.1",
+    "vite": "^8.0.14",
+    "vitest": "^1.2.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.monthly-balance.app",
+    "productName": "Monatliche Bilanz",
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Monatliche Bilanz"
+    }
+  }
+}
