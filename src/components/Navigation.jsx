@@ -1,12 +1,11 @@
 import { useApp } from '../context/AppContext';
 
 export default function Navigation({ activePage, onNavigate }) {
-  const { isElectron } = useApp();
+  const { isElectron, saveStatus, manualSave } = useApp();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'transaktionen', label: 'Transaktionen' },
-    { id: 'auswertung', label: 'Auswertung' },
   ];
 
   return (
@@ -26,6 +25,16 @@ export default function Navigation({ activePage, onNavigate }) {
             {item.label}
           </button>
         ))}
+        {isElectron && (
+          <button
+            className={`nav-save-btn${saveStatus === 'saved' ? ' nav-save-btn--saved' : ''}`}
+            onClick={manualSave}
+            disabled={saveStatus === 'saving'}
+            title="Daten jetzt speichern"
+          >
+            {saveStatus === 'saved' ? '✓ Gespeichert' : saveStatus === 'saving' ? 'Speichert…' : '💾 Speichern'}
+          </button>
+        )}
       </div>
     </nav>
   );

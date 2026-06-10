@@ -1,11 +1,24 @@
+import { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { getUniqueValues, hasActiveFilters } from '../domain/filterEngine';
 
 export default function FilterPanel({ onResetAll, hasColumnFilters = false }) {
-  const { transactions, filters, dispatch } = useApp();
+  const { transactions, filters, dateRange, dispatch } = useApp();
 
-  const allCategories = getUniqueValues(transactions, 'category');
-  const allPartners = getUniqueValues(transactions, 'partner');
+  const periodTransactions = useMemo(() => {
+    const { startYear, startMonth, endYear, endMonth } = dateRange;
+    const startYM = startYear * 12 + startMonth;
+    const endYM = endYear * 12 + endMonth;
+    return transactions.filter((t) => {
+      const [ty, tm] = t.date.split('-').map(Number);
+      const txYM = ty * 12 + tm;
+      if (t.recurrence === 'monthly') return txYM <= endYM;
+      return txYM >= startYM && txYM <= endYM;
+    });
+  }, [transactions, dateRange]);
+
+  const allCategories = getUniqueValues(periodTransactions, 'category');
+  const allPartners = getUniqueValues(periodTransactions, 'partner');
   const isGlobalActive = hasActiveFilters(filters);
   const showReset = isGlobalActive || hasColumnFilters;
 

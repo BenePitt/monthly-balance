@@ -273,26 +273,22 @@ const TransactionTable = forwardRef(function TransactionTable({
             onChange={(e) => setField('purpose', e.target.value)} />
         </td>
         <td>
-          <input type="text"
-            className={`form-input form-input-compact${editErrors.category ? ' form-input--error' : ''}`}
-            placeholder="Kategorie"
+          <select
+            className={`form-input form-select form-input-compact${editErrors.category ? ' form-input--error' : ''}`}
             value={editingValues.category ?? ''}
-            list="inline-edit-categories"
-            onChange={(e) => setField('category', e.target.value)} />
-          <datalist id="inline-edit-categories">
-            {suggestedCategories.map((c) => <option key={c} value={c} />)}
-          </datalist>
+            onChange={(e) => setField('category', e.target.value)}>
+            <option value="">– Kategorie –</option>
+            {suggestedCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
         </td>
         <td>
-          <input type="text"
-            className={`form-input form-input-compact${editErrors.partner ? ' form-input--error' : ''}`}
-            placeholder="Transaktionspartner"
+          <select
+            className={`form-input form-select form-input-compact${editErrors.partner ? ' form-input--error' : ''}`}
             value={editingValues.partner ?? ''}
-            list="inline-edit-partners"
-            onChange={(e) => setField('partner', e.target.value)} />
-          <datalist id="inline-edit-partners">
-            {suggestedPartners.map((p) => <option key={p} value={p} />)}
-          </datalist>
+            onChange={(e) => setField('partner', e.target.value)}>
+            <option value="">– Partner –</option>
+            {suggestedPartners.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
         </td>
         <td>
           <select className="form-input form-select form-input-compact"
@@ -345,7 +341,10 @@ const TransactionTable = forwardRef(function TransactionTable({
   const visibleCheckbox = bulkEditMode;
   const colCount = 1 + 7 + (visibleActions ? 1 : 0) + (visibleCheckbox ? 1 : 0);
 
-  if (transactions.length === 0 && editingId !== NEW_ROW_ID) {
+  const showEmptyState = transactions.length === 0 && editingId !== NEW_ROW_ID;
+
+  // Only show the full wrapper when there's content OR when the filter row is present (so header stays visible)
+  if (showEmptyState && !onColumnFilterChange) {
     return (
       <div className="table-empty">
         <p>Keine Transaktionen gefunden.</p>
@@ -414,6 +413,16 @@ const TransactionTable = forwardRef(function TransactionTable({
         </thead>
 
         <tbody>
+          {/* ── Empty state (filter active, no results) ──────────────── */}
+          {showEmptyState && (
+            <tr>
+              <td colSpan={colCount} className="table-empty-cell">
+                <p>Keine Transaktionen gefunden.</p>
+                <p className="text-muted">Passen Sie die Spaltenfilter an.</p>
+              </td>
+            </tr>
+          )}
+
           {/* ── New row at top ───────────────────────────────────────── */}
           {editingId === NEW_ROW_ID && (
             <tr className="tx-row tx-row--editing tx-row--new">

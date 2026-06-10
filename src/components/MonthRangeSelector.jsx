@@ -2,7 +2,7 @@ import { useApp } from '../context/AppContext';
 import { toMonthInputValue, fromMonthInputValue } from '../utils/formatting';
 
 export default function MonthRangeSelector() {
-  const { dateRange, dispatch } = useApp();
+  const { dateRange, dispatch, transactions } = useApp();
   const { startYear, startMonth, endYear, endMonth } = dateRange;
 
   const startValue = toMonthInputValue(startYear, startMonth);
@@ -56,6 +56,16 @@ export default function MonthRangeSelector() {
     dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: sY, startMonth: sM, endYear: eY, endMonth: eM } });
   }
 
+  function setAll() {
+    if (transactions.length === 0) return;
+    const dates = transactions.map((t) => t.date);
+    const min = dates.reduce((a, b) => (a < b ? a : b));
+    const max = dates.reduce((a, b) => (a > b ? a : b));
+    const [sY, sM] = min.split('-').map(Number);
+    const [eY, eM] = max.split('-').map(Number);
+    dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: sY, startMonth: sM, endYear: eY, endMonth: eM } });
+  }
+
   return (
     <div className="month-range-selector">
       <div className="month-range-fields">
@@ -84,6 +94,13 @@ export default function MonthRangeSelector() {
         <button className="btn btn-sm btn-outline" onClick={() => setPreset('3months')}>Letzte 3 Monate</button>
         <button className="btn btn-sm btn-outline" onClick={() => setPreset('6months')}>Letzte 6 Monate</button>
         <button className="btn btn-sm btn-outline" onClick={() => setPreset('year')}>Aktuelles Jahr</button>
+        <button
+          className="btn btn-sm btn-outline"
+          onClick={setAll}
+          disabled={transactions.length === 0}
+        >
+          Alles
+        </button>
       </div>
     </div>
   );

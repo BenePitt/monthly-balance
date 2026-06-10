@@ -30,7 +30,7 @@ function createWindow() {
   }
 }
 
-// IPC: Load transactions from local JSON file
+// IPC: Load transactions from local JSON file (legacy)
 ipcMain.handle('load-transactions', async () => {
   const dataFile = getDataFilePath();
   try {
@@ -44,11 +44,50 @@ ipcMain.handle('load-transactions', async () => {
   }
 });
 
-// IPC: Save transactions to local JSON file
+// IPC: Save transactions to local JSON file (legacy)
 ipcMain.handle('save-transactions', async (_event, transactions) => {
   const dataFile = getDataFilePath();
   try {
     fs.writeFileSync(dataFile, JSON.stringify(transactions, null, 2), 'utf-8');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+function getAppDataFilePath() {
+  return path.join(app.getPath('userData'), 'data.json');
+}
+
+const DEFAULT_APP_DATA = { transactions: [], startBalance: 0, currentBalance: 0, balanceMode: 'start' };
+
+// IPC: Load full app data (transactions + balance settings)
+ipcMain.handle('load-app-data', async () => {
+  const appDataFile = getAppDataFilePath();
+  try {
+    if (fs.existsSync(appDataFile)) {
+      const raw = fs.readFileSync(appDataFile, 'utf-8');
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_APP_DATA, ...parsed };
+    }
+    // Migration: fall back to legacy transactions.json
+    const legacyFile = getDataFilePath();
+    if (fs.existsSync(legacyFile)) {
+      const raw = fs.readFileSync(legacyFile, 'utf-8');
+      const transactions = JSON.parse(raw);
+      return { ...DEFAULT_APP_DATA, transactions: Array.isArray(transactions) ? transactions : [] };
+    }
+    return { ...DEFAULT_APP_DATA };
+  } catch {
+    return { ...DEFAULT_APP_DATA };
+  }
+});
+
+// IPC: Save full app data (transactions + balance settings)
+ipcMain.handle('save-app-data', async (_event, data) => {
+  const appDataFile = getAppDataFilePath();
+  try {
+    fs.writeFileSync(appDataFile, JSON.stringify(data, null, 2), 'utf-8');
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

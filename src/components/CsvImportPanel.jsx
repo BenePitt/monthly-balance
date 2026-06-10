@@ -37,6 +37,8 @@ function getPurposeRows(purpose) {
 
 export default function CsvImportPanel({ onNewTransaction }) {
   const { transactions, importTransactions } = useApp();
+  const [inputMode, setInputMode] = useState('file');
+  const [csvTextInput, setCsvTextInput] = useState('');
   const [mode, setMode] = useState('auto');
   const [fileName, setFileName] = useState('');
   const [rawCsv, setRawCsv] = useState('');
@@ -174,11 +176,21 @@ export default function CsvImportPanel({ onNewTransaction }) {
       setSelectedIds([]);
       setRawCsv('');
       setFileName('');
+      setCsvTextInput('');
     } catch {
       setError('Der Import konnte nicht gespeichert werden.');
     } finally {
       setIsImporting(false);
     }
+  }
+
+  function handleAnalyzeText() {
+    if (!csvTextInput.trim()) return;
+    setError('');
+    setSuccessMessage('');
+    setFileName('');
+    setRawCsv(csvTextInput);
+    parseCsv(csvTextInput, mode);
   }
 
   return (
@@ -188,11 +200,29 @@ export default function CsvImportPanel({ onNewTransaction }) {
           <h2 className="section-title">Daten hinzufügen</h2>
           {fileName && <p className="import-file-name">{fileName}</p>}
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <label className="btn btn-outline import-file-button">
-            CSV auswählen
-            <input type="file" accept=".csv,text/csv" onChange={handleFileChange} />
-          </label>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {drafts.length === 0 && (
+            <div className="chart-type-toggle">
+              <button
+                className={`btn btn-sm${inputMode === 'file' ? ' btn-primary' : ' btn-outline'}`}
+                onClick={() => setInputMode('file')}
+              >
+                Datei hochladen
+              </button>
+              <button
+                className={`btn btn-sm${inputMode === 'text' ? ' btn-primary' : ' btn-outline'}`}
+                onClick={() => setInputMode('text')}
+              >
+                Text einfügen
+              </button>
+            </div>
+          )}
+          {inputMode === 'file' && drafts.length === 0 && (
+            <label className="btn btn-outline import-file-button">
+              CSV auswählen
+              <input type="file" accept=".csv,text/csv" onChange={handleFileChange} />
+            </label>
+          )}
           {onNewTransaction && (
             <button type="button" className="btn btn-primary" onClick={onNewTransaction}>
               + Neue Transaktion
@@ -200,6 +230,28 @@ export default function CsvImportPanel({ onNewTransaction }) {
           )}
         </div>
       </div>
+
+      {inputMode === 'text' && drafts.length === 0 && (
+        <div className="csv-text-input-wrap">
+          <textarea
+            className="form-input csv-text-input"
+            placeholder="CSV-Inhalt hier einfügen…"
+            rows={8}
+            value={csvTextInput}
+            onChange={(e) => setCsvTextInput(e.target.value)}
+          />
+          <div style={{ marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleAnalyzeText}
+              disabled={!csvTextInput.trim()}
+            >
+              CSV analysieren
+            </button>
+          </div>
+        </div>
+      )}
 
       {rawCsv && (
         <div className="import-mode-toggle" role="radiogroup" aria-label="Importmodus">

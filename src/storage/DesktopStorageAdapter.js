@@ -23,6 +23,22 @@ export class DesktopStorageAdapter {
     }
   }
 
+  async getData() {
+    try {
+      return await window.electronAPI.loadAppData();
+    } catch {
+      return { transactions: [], startBalance: 0, currentBalance: 0, balanceMode: 'start' };
+    }
+  }
+
+  async saveData(data) {
+    try {
+      await window.electronAPI.saveAppData(data);
+    } catch (error) {
+      console.error('Fehler beim Speichern der App-Daten:', error);
+    }
+  }
+
   isElectron() {
     return true;
   }

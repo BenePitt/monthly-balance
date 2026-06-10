@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { AppProvider } from './context/AppContext';
 import Navigation from './components/Navigation';
-import Dashboard from './pages/Dashboard';
-import Transaktionen from './pages/Transaktionen';
-import Auswertung from './pages/Auswertung';
 import { LegalModal } from './components/LegalModal';
 import { legalData } from './legal/legalData';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Transaktionen = lazy(() => import('./pages/Transaktionen'));
 
 function AppContent() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -16,7 +16,6 @@ function AppContent() {
     switch (activePage) {
       case 'dashboard': return <Dashboard />;
       case 'transaktionen': return <Transaktionen />;
-      case 'auswertung': return <Auswertung />;
       default: return <Dashboard />;
     }
   }
@@ -25,7 +24,9 @@ function AppContent() {
     <div className="app">
       <Navigation activePage={activePage} onNavigate={setActivePage} />
       <main className="app-main">
-        {renderPage()}
+        <Suspense fallback={<div className="page-loading">Wird geladen...</div>}>
+          {renderPage()}
+        </Suspense>
       </main>
       <footer className="legal-footer">
         <div className="legal-footer-inner">

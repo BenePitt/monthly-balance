@@ -140,6 +140,32 @@ input, select, textarea { font-family: inherit; }
   font-weight: 600;
 }
 
+.nav-save-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  margin-left: 8px;
+}
+
+.nav-save-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.nav-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.nav-save-btn--saved {
+  background: #16a34a;
+}
+
 /* =========================================================
    Pages
    ========================================================= */
@@ -425,6 +451,8 @@ input, select, textarea { font-family: inherit; }
 .auswertung-sidebar {
   position: sticky;
   top: calc(var(--nav-height) + 1rem);
+  max-height: calc(100vh - var(--nav-height) - 2rem);
+  overflow-y: auto;
 }
 
 @media (max-width: 900px) {
@@ -812,6 +840,12 @@ input, select, textarea { font-family: inherit; }
 .text-right { text-align: right; }
 
 .table-empty {
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.table-empty-cell {
   padding: 2.5rem;
   text-align: center;
   color: var(--color-text-muted);
@@ -1323,6 +1357,143 @@ input, select, textarea { font-family: inherit; }
     flex-direction: column;
     align-items: center;
   }
+}
+
+/* =========================================================
+   Category Mini Charts
+   ========================================================= */
+
+.category-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.category-mini-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.category-mini-stats {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.category-mini-stat {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.category-mini-stat--income  { color: #16a34a; background: #f0fdf4; }
+.category-mini-stat--expense { color: #dc2626; background: #fef2f2; }
+.category-mini-stat--balance { color: #2563eb; background: #eff6ff; }
+
+.category-mini-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-mini-chart-wrap {
+  width: 100%;
+}
+
+.category-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.category-mini-row td {
+  padding: 2px 4px;
+  border-top: 1px solid #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-mini-date {
+  color: #94a3b8;
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.category-mini-purpose {
+  color: #475569;
+  max-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-mini-amount {
+  font-weight: 500;
+  text-align: right;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.category-mini-row--income .category-mini-amount {
+  color: #16a34a;
+}
+
+.category-mini-row--expense .category-mini-amount {
+  color: #dc2626;
+}
+
+.category-mini-empty {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0.5rem 0 0;
+}
+
+
+/* =========================================================
+   Verlauf Chart
+   ========================================================= */
+
+.verlauf-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.verlauf-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.verlauf-panel-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.75rem 0;
+}
+
+.csv-text-input-wrap {
+  margin-top: 0.75rem;
+}
+
+.csv-text-input {
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+  width: 100%;
 }
 
 /* =========================================================

@@ -2,6 +2,7 @@
   "name": "monthly-balance",
   "version": "1.0.0",
   "description": "Anwendung zur monatlichen Bilanz einer Privatperson",
+  "author": "Benedikt Veit",
   "main": "electron/main.js",
   "scripts": {
     "dev": "node node_modules/vite/bin/vite.js",
@@ -51,14 +52,11 @@
             "x64"
           ]
         }
-      ],
-      "icon": "public/icon.ico"
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "public/icon.ico",
-      "installerHeaderIcon": "public/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Monatliche Bilanz"

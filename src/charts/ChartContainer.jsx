@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import BalanceBarChart from './BalanceBarChart';
 import BalanceLineChart from './BalanceLineChart';
+import BalanceStackedTrendChart from './BalanceStackedTrendChart';
 import { calculateStartBalanceFromCurrentBalance } from '../domain/balanceCalculator';
 import { formatCurrency } from '../utils/formatting';
 
 const GROUP_OPTIONS = [
   { value: null, label: 'Standard (Einnahmen / Ausgaben / Bilanz)' },
   { value: 'category', label: 'Nach Kategorie' },
-  { value: 'purpose', label: 'Nach Verwendungszweck' },
   { value: 'partner', label: 'Nach Transaktionspartner' },
 ];
 
@@ -66,6 +66,12 @@ export default function ChartContainer({ showGroupingOptions = false }) {
             onClick={() => dispatch({ type: 'SET_CHART_TYPE', payload: 'line' })}
           >
             Liniendiagramm
+          </button>
+          <button
+            className={`btn btn-sm${chartType === 'verlauf' ? ' btn-primary' : ' btn-outline'}`}
+            onClick={() => dispatch({ type: 'SET_CHART_TYPE', payload: 'verlauf' })}
+          >
+            Verlauf
           </button>
         </div>
 
@@ -147,7 +153,9 @@ export default function ChartContainer({ showGroupingOptions = false }) {
       </div>
 
       <div className="chart-body">
-        {chartType === 'bar' ? <BalanceBarChart /> : <BalanceLineChart />}
+        {chartType === 'bar' ? <BalanceBarChart /> :
+         chartType === 'verlauf' ? <BalanceStackedTrendChart /> :
+         <BalanceLineChart />}
       </div>
     </div>
   );
