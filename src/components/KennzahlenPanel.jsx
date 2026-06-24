@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/formatting';
 
-export default function KennzahlenPanel() {
+function KennzahlenPanel() {
   const { periodStats } = useApp();
   const { totalIncome, totalExpense, totalBalance, avgMonthlyBalance } = periodStats;
 
@@ -30,6 +31,8 @@ export default function KennzahlenPanel() {
     </div>
   );
 }
+
+export default memo(KennzahlenPanel);
 
 function KennzahlCard({ label, value, className }) {
   return (

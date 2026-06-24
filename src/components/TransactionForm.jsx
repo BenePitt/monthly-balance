@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { formatDate, parseGermanDate } from '../utils/formatting';
+import { formatDate } from '../utils/formatting';
 import { TYPE_LABELS, RECURRENCE_LABELS } from '../domain/transaction';
 import { getUniqueValues } from '../domain/filterEngine';
 

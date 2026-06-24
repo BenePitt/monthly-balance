@@ -12,17 +12,12 @@ import {
   Customized,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { formatCurrency, formatMonthShort } from '../utils/formatting';
+import { formatCurrency, formatMonthShort, euroAxisFormatter } from '../utils/formatting';
 
 const CHART_COLORS = [
   '#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6',
   '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
 ];
-
-function euroAxisFormatter(value) {
-  if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}k €`;
-  return `${value} €`;
-}
 
 function buildTrendData(months, type) {
   const allCategories = new Set();

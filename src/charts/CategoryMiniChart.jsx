@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo } from 'react';
 import {
   BarChart,
   Bar,
@@ -62,7 +62,7 @@ function TxTooltip({ tx, pos }) {
   );
 }
 
-export default function CategoryMiniChart({ category, transactions, dateRange }) {
+function CategoryMiniChart({ category, transactions, dateRange }) {
   const { startYear, startMonth, endYear, endMonth } = dateRange;
   const [hoveredTx, setHoveredTx] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -179,3 +179,5 @@ export default function CategoryMiniChart({ category, transactions, dateRange })
     </div>
   );
 }
+
+export default memo(CategoryMiniChart);

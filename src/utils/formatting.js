@@ -70,4 +70,23 @@ export function fromMonthInputValue(value) {
   return { year: y, month: m };
 }
 
+/**
+ * Formats a compact Euro axis tick for charts (e.g. 1500 → "1.5k €").
+ */
+export function euroAxisFormatter(value) {
+  if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}k €`;
+  return `${value} €`;
+}
+
+/**
+ * Calculates the number of textarea rows needed for a purpose string.
+ */
+export function getPurposeRows(text) {
+  const lines = String(text || '').split('\n');
+  const visualRows = lines.reduce(
+    (sum, line) => sum + Math.max(1, Math.ceil(line.length / 42)), 0
+  );
+  return Math.min(6, Math.max(2, visualRows));
+}
+
 export { MONTH_NAMES_DE };

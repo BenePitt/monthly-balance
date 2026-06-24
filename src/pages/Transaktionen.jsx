@@ -6,39 +6,10 @@ import BulkEditForm from '../components/BulkEditForm';
 import CsvImportPanel from '../components/CsvImportPanel';
 import { useApp } from '../context/AppContext';
 import { createDemoTransactions } from '../utils/demoData';
-import { formatDate } from '../utils/formatting';
-
-const ROW_LIMIT_OPTIONS = [
-  { value: '25', label: '25' },
-  { value: '100', label: '100' },
-  { value: '500', label: '500' },
-  { value: 'all', label: 'Alle' },
-];
-
-const EMPTY_COLUMN_FILTERS = {
-  date: '', type: '', amount: '', purpose: '', category: '', partner: '', recurrence: '',
-};
-
-function getUniquePeriodTransactions(periodStats) {
-  const byId = new Map();
-  for (const month of periodStats.months) {
-    for (const tx of month.transactions) byId.set(tx.id, tx);
-  }
-  return Array.from(byId.values());
-}
-
-function applyColumnFilters(transactions, filters) {
-  return transactions.filter((t) => {
-    if (filters.date && !formatDate(t.date).includes(filters.date)) return false;
-    if (filters.type && t.type !== filters.type) return false;
-    if (filters.amount && !String(t.amount).includes(filters.amount)) return false;
-    if (filters.purpose && !t.purpose.toLowerCase().includes(filters.purpose.toLowerCase())) return false;
-    if (filters.category && !t.category.toLowerCase().includes(filters.category.toLowerCase())) return false;
-    if (filters.partner && !t.partner.toLowerCase().includes(filters.partner.toLowerCase())) return false;
-    if (filters.recurrence && t.recurrence !== filters.recurrence) return false;
-    return true;
-  });
-}
+import { ROW_LIMIT_OPTIONS } from '../constants/ui';
+import { getUniquePeriodTransactions, applyColumnFilters } from '../domain/filterEngine';
+import { useColumnFilters } from '../hooks/useColumnFilters';
+import { useBulkSelectMode } from '../hooks/useBulkSelectMode';
 
 export default function Transaktionen() {
   const { transactions, periodStats, loadDemoData, clearAllTransactions, isLoading } = useApp();
@@ -46,9 +17,9 @@ export default function Transaktionen() {
   const tableRef = useRef(null);
   const tableSectionRef = useRef(null);
 
-  const [bulkEditMode, setBulkEditMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS);
+  const { bulkEditMode, selectedIds, enterBulkMode, exitBulkMode, handleToggleSelect } = useBulkSelectMode();
+  const { columnFilters, handleColumnFilterChange, resetColumnFilters, hasColumnFilters } = useColumnFilters();
+
   const [rowLimit, setRowLimit] = useState('25');
   const [showDemoConfirm, setShowDemoConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -65,10 +36,7 @@ export default function Transaktionen() {
     [periodTransactions, columnFilters]
   );
 
-  const hasColumnFilters = Object.values(columnFilters).some((v) => v !== '');
   const isFiltered = tableTransactions.length !== transactions.length;
-
-  // ── Neue Transaktion (inline in Tabelle) ──────────────────────────────────
 
   function handleNewTransaction() {
     exitBulkMode();
@@ -86,36 +54,6 @@ export default function Transaktionen() {
     setShowClearConfirm(false);
     exitBulkMode();
     resetColumnFilters();
-  }
-
-  // ── Bulk-edit ─────────────────────────────────────────────────────────────
-
-  function enterBulkMode() {
-    setSelectedIds(new Set());
-    setBulkEditMode(true);
-  }
-
-  function exitBulkMode() {
-    setBulkEditMode(false);
-    setSelectedIds(new Set());
-  }
-
-  function handleToggleSelect(ids, select) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const id of ids) select ? next.add(id) : next.delete(id);
-      return next;
-    });
-  }
-
-  // ── Column filters ────────────────────────────────────────────────────────
-
-  function handleColumnFilterChange(field, value) {
-    setColumnFilters((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function resetColumnFilters() {
-    setColumnFilters(EMPTY_COLUMN_FILTERS);
   }
 
   if (isLoading) {

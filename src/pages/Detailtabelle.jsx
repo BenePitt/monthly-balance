@@ -3,24 +3,8 @@ import MonthRangeSelector from '../components/MonthRangeSelector';
 import FilterPanel from '../components/FilterPanel';
 import TransactionTable from '../components/TransactionTable';
 import { useApp } from '../context/AppContext';
-import { hasActiveFilters } from '../domain/filterEngine';
-
-const ROW_LIMIT_OPTIONS = [
-  { value: '10', label: '10' },
-  { value: '100', label: '100' },
-  { value: '1000', label: '1000' },
-  { value: 'all', label: 'Alle' },
-];
-
-function getUniquePeriodTransactions(periodStats) {
-  const byId = new Map();
-  for (const month of periodStats.months) {
-    for (const transaction of month.transactions) {
-      byId.set(transaction.id, transaction);
-    }
-  }
-  return Array.from(byId.values());
-}
+import { hasActiveFilters, getUniquePeriodTransactions } from '../domain/filterEngine';
+import { DETAILTABELLE_ROW_LIMIT_OPTIONS } from '../constants/ui';
 
 export default function Detailtabelle() {
   const { filters, periodStats, isLoading } = useApp();
@@ -71,7 +55,7 @@ export default function Detailtabelle() {
               value={rowLimit}
               onChange={(e) => setRowLimit(e.target.value)}
             >
-              {ROW_LIMIT_OPTIONS.map((opt) => (
+              {DETAILTABELLE_ROW_LIMIT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>

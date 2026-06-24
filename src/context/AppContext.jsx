@@ -1,8 +1,10 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useMemo } from 'react';
 import { TransactionService } from '../services/TransactionService';
 import { createStorageAdapter } from '../storage/storageFactory';
 import { applyFilters } from '../domain/filterEngine';
 import { calculatePeriodStats } from '../domain/balanceCalculator';
+import { DataContext } from './DataContext';
+import { UIContext } from './UIContext';
 
 const now = new Date();
 const DEFAULT_STATE = {
@@ -18,14 +20,14 @@ const DEFAULT_STATE = {
     endYear: now.getFullYear(),
     endMonth: now.getMonth() + 1,
   },
-  chartType: 'bar',    // 'bar' | 'line'
-  barGroupBy: null,    // null | 'category' | 'purpose' | 'partner'
+  chartType: 'bar',
+  barGroupBy: null,
   lineChartBalanceMode: 'start',
   lineChartStartBalance: 0,
   lineChartCurrentBalance: 0,
   isLoading: true,
   isElectron: false,
-  saveStatus: 'idle',  // 'idle' | 'saving' | 'saved'
+  saveStatus: 'idle',
 };
 
 function reducer(state, action) {
@@ -63,12 +65,17 @@ function reducer(state, action) {
   }
 }
 
+// Legacy compat context — used only by useApp()
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, DEFAULT_STATE);
-  const storageAdapter = createStorageAdapter();
-  const service = new TransactionService(storageAdapter);
+  const storageAdapterRef = useRef(null);
+  if (!storageAdapterRef.current) storageAdapterRef.current = createStorageAdapter();
+  const serviceRef = useRef(null);
+  if (!serviceRef.current) serviceRef.current = new TransactionService(storageAdapterRef.current);
+  const storageAdapter = storageAdapterRef.current;
+  const service = serviceRef.current;
   const saveStatusTimerRef = useRef(null);
   const balanceDebounceRef = useRef(null);
   const isInitializedRef = useRef(false);
@@ -110,7 +117,6 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  // Auto-save balance settings when they change (debounced, desktop only)
   useEffect(() => {
     if (!isDesktop || !storageAdapter.saveData || !isInitializedRef.current) return;
     clearTimeout(balanceDebounceRef.current);
@@ -188,21 +194,24 @@ export function AppProvider({ children }) {
     setSaveStatus('saved');
   }, [state.transactions, state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance, isDesktop, buildAppData, setSaveStatus]);
 
-  // Derived data: filtered transactions
-  const filteredTransactions = applyFilters(state.transactions, state.filters);
-
-  // Derived data: period stats based on filtered transactions
-  const { startYear, startMonth, endYear, endMonth } = state.dateRange;
-  const periodStats = calculatePeriodStats(
-    filteredTransactions,
-    startYear, startMonth,
-    endYear, endMonth
+  const filteredTransactions = useMemo(
+    () => applyFilters(state.transactions, state.filters),
+    [state.transactions, state.filters]
   );
 
-  const value = {
-    ...state,
+  const { startYear, startMonth, endYear, endMonth } = state.dateRange;
+  const periodStats = useMemo(
+    () => calculatePeriodStats(filteredTransactions, startYear, startMonth, endYear, endMonth),
+    [filteredTransactions, startYear, startMonth, endYear, endMonth]
+  );
+
+  const dataValue = useMemo(() => ({
+    transactions: state.transactions,
     filteredTransactions,
     periodStats,
+    filters: state.filters,
+    dateRange: state.dateRange,
+    isLoading: state.isLoading,
     dispatch,
     addTransaction,
     importTransactions,
@@ -211,10 +220,42 @@ export function AppProvider({ children }) {
     deleteTransaction,
     loadDemoData,
     clearAllTransactions,
-    manualSave,
-  };
+  }), [
+    state.transactions, filteredTransactions, periodStats,
+    state.filters, state.dateRange, state.isLoading,
+    addTransaction, importTransactions, updateTransaction,
+    bulkUpdateTransactions, deleteTransaction, loadDemoData, clearAllTransactions,
+  ]);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  const uiValue = useMemo(() => ({
+    chartType: state.chartType,
+    barGroupBy: state.barGroupBy,
+    lineChartBalanceMode: state.lineChartBalanceMode,
+    lineChartStartBalance: state.lineChartStartBalance,
+    lineChartCurrentBalance: state.lineChartCurrentBalance,
+    saveStatus: state.saveStatus,
+    isElectron: state.isElectron,
+    dispatch,
+    manualSave,
+  }), [
+    state.chartType, state.barGroupBy,
+    state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance,
+    state.saveStatus, state.isElectron,
+    manualSave,
+  ]);
+
+  // Legacy merged value for useApp() compatibility
+  const appValue = useMemo(() => ({ ...dataValue, ...uiValue }), [dataValue, uiValue]);
+
+  return (
+    <DataContext.Provider value={dataValue}>
+      <UIContext.Provider value={uiValue}>
+        <AppContext.Provider value={appValue}>
+          {children}
+        </AppContext.Provider>
+      </UIContext.Provider>
+    </DataContext.Provider>
+  );
 }
 
 export function useApp() {

@@ -76,9 +76,43 @@ function matchesKeyword(text, keyword) {
   return text.includes(normalizeText(keyword));
 }
 
-export function inferTransactionMetadata(bookingText, type = 'expense') {
+const LEARNED_STOP_WORDS = new Set([
+  'gmbh', 'kgaa', 'bank', 'kauf', 'zahlung', 'auftrag', 'euro', 'eur',
+  'lastschrift', 'ueberweisung', 'datum', 'referenz', 'abschluss',
+]);
+
+const DEFAULT_VALUES = new Set(['', 'Sonstiges', 'Unbekannt']);
+
+export function buildLearnedRules(transactions) {
+  const rulesMap = new Map();
+
+  for (const tx of transactions) {
+    if (DEFAULT_VALUES.has(tx.category) && DEFAULT_VALUES.has(tx.partner)) continue;
+    if (!tx.purpose) continue;
+
+    const key = `${tx.category}|${tx.partner}`;
+    const words = normalizeText(tx.purpose)
+      .split(/\s+/)
+      .filter((w) => w.length >= 4 && !LEARNED_STOP_WORDS.has(w) && !/^\d+$/.test(w));
+
+    if (words.length === 0) continue;
+
+    if (!rulesMap.has(key)) {
+      rulesMap.set(key, { category: tx.category, partner: tx.partner, keywords: new Set() });
+    }
+    words.forEach((w) => rulesMap.get(key).keywords.add(w));
+  }
+
+  return [...rulesMap.values()].map(({ category, partner, keywords }) => ({
+    category,
+    partner,
+    keywords: [...keywords],
+  }));
+}
+
+export function inferTransactionMetadata(bookingText, type = 'expense', learnedRules = []) {
   const normalized = normalizeText(bookingText);
-  const rule = [...PUBLIC_PARTNER_RULES, ...GENERIC_RULES].find((candidate) => {
+  const rule = [...learnedRules, ...PUBLIC_PARTNER_RULES, ...GENERIC_RULES].find((candidate) => {
     if (candidate.type && candidate.type !== type) return false;
     return candidate.keywords.some((keyword) => matchesKeyword(normalized, keyword));
   });
@@ -184,7 +218,8 @@ function readCell(row, index) {
   return String(row[index] || '').trim();
 }
 
-export function parseBankCsv(text, { fillUnknowns = true } = {}) {
+export function parseBankCsv(text, { fillUnknowns = true, existingTransactions = [] } = {}) {
+  const learnedRules = buildLearnedRules(existingTransactions);
   const rows = parseCsvRows(text);
   const header = findHeader(rows);
   const warnings = [];
@@ -216,7 +251,7 @@ export function parseBankCsv(text, { fillUnknowns = true } = {}) {
     }
 
     const type = signedAmount < 0 ? 'expense' : 'income';
-    const inferred = inferTransactionMetadata(purpose, type);
+    const inferred = inferTransactionMetadata(purpose, type, learnedRules);
 
     transactions.push({
       sourceRow: rowIndex + 1,

@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatMonthYear } from '../utils/formatting';
 
-export default function MonthSummaryTable() {
+function MonthSummaryTable() {
   const { periodStats } = useApp();
   const { months } = periodStats;
 
@@ -36,3 +37,5 @@ export default function MonthSummaryTable() {
     </div>
   );
 }
+
+export default memo(MonthSummaryTable);

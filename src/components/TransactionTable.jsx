@@ -3,20 +3,8 @@ import { useApp } from '../context/AppContext';
 import { formatCurrency, formatDate } from '../utils/formatting';
 import { TYPE_LABELS, RECURRENCE_LABELS } from '../domain/transaction';
 import { getUniqueValues } from '../domain/filterEngine';
-
-const EMPTY_COLUMN_FILTERS = {
-  date: '', type: '', amount: '', purpose: '', category: '', partner: '', recurrence: '',
-};
-
-const NEW_ROW_ID = '__new__';
-
-function getPurposeRows(text) {
-  const lines = String(text || '').split('\n');
-  const visualRows = lines.reduce(
-    (sum, line) => sum + Math.max(1, Math.ceil(line.length / 42)), 0
-  );
-  return Math.min(6, Math.max(2, visualRows));
-}
+import { EMPTY_COLUMN_FILTERS, NEW_ROW_ID } from '../constants/ui';
+import EditTransactionRow from './EditTransactionRow';
 
 function DetailPanel({ t }) {
   return (
@@ -237,95 +225,6 @@ const TransactionTable = forwardRef(function TransactionTable({
     setEditErrors((prev) => ({ ...prev, [field]: undefined }));
   }
 
-  // ── Shared edit row renderer ─────────────────────────────────────────────
-
-  function renderEditCells(isNew = false) {
-    return (
-      <>
-        <td className="td-expand" />
-        <td>
-          <input type="date"
-            className={`form-input form-input-compact${editErrors.date ? ' form-input--error' : ''}`}
-            value={editingValues.date ?? ''}
-            onChange={(e) => setField('date', e.target.value)} />
-        </td>
-        <td>
-          <select className="form-input form-select form-input-compact"
-            value={editingValues.type ?? 'expense'}
-            onChange={(e) => setField('type', e.target.value)}>
-            <option value="income">{TYPE_LABELS.income}</option>
-            <option value="expense">{TYPE_LABELS.expense}</option>
-          </select>
-        </td>
-        <td>
-          <input type="number"
-            className={`form-input form-input-compact${editErrors.amount ? ' form-input--error' : ''}`}
-            min="0.01" step="0.01" placeholder="0,00"
-            value={editingValues.amount ?? ''}
-            onChange={(e) => setField('amount', e.target.value)} />
-        </td>
-        <td className="import-purpose">
-          <textarea
-            className={`form-input${editErrors.purpose ? ' form-input--error' : ''}`}
-            placeholder="Verwendungszweck"
-            value={editingValues.purpose ?? ''}
-            rows={getPurposeRows(editingValues.purpose)}
-            onChange={(e) => setField('purpose', e.target.value)} />
-        </td>
-        <td>
-          <select
-            className={`form-input form-select form-input-compact${editErrors.category ? ' form-input--error' : ''}`}
-            value={editingValues.category ?? ''}
-            onChange={(e) => setField('category', e.target.value)}>
-            <option value="">– Kategorie –</option>
-            {suggestedCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </td>
-        <td>
-          <select
-            className={`form-input form-select form-input-compact${editErrors.partner ? ' form-input--error' : ''}`}
-            value={editingValues.partner ?? ''}
-            onChange={(e) => setField('partner', e.target.value)}>
-            <option value="">– Partner –</option>
-            {suggestedPartners.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </td>
-        <td>
-          <select className="form-input form-select form-input-compact"
-            value={editingValues.recurrence ?? 'once'}
-            onChange={(e) => setField('recurrence', e.target.value)}>
-            <option value="once">{RECURRENCE_LABELS.once}</option>
-            <option value="monthly">{RECURRENCE_LABELS.monthly}</option>
-          </select>
-        </td>
-        <td className="tx-actions">
-          <div className="tx-actions-inner" style={{ flexWrap: 'wrap', gap: '0.3rem' }}>
-            {isNew ? (
-              <>
-                <button className="btn btn-sm btn-primary" onClick={() => saveNewRow(false)}>
-                  Speichern
-                </button>
-                <button className="btn btn-sm btn-outline btn-income-outline"
-                  style={{ fontSize: '0.75rem' }}
-                  onClick={() => saveNewRow(true)}>
-                  + Weitere
-                </button>
-                <button className="btn btn-sm btn-outline" onClick={cancelEdit}>
-                  Abbrechen
-                </button>
-              </>
-            ) : (
-              <>
-                <button className="btn btn-sm btn-primary" onClick={saveEdit}>Speichern</button>
-                <button className="btn btn-sm btn-outline" onClick={cancelEdit}>Abbrechen</button>
-              </>
-            )}
-          </div>
-        </td>
-      </>
-    );
-  }
-
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function cf(field) {
@@ -343,7 +242,6 @@ const TransactionTable = forwardRef(function TransactionTable({
 
   const showEmptyState = transactions.length === 0 && editingId !== NEW_ROW_ID;
 
-  // Only show the full wrapper when there's content OR when the filter row is present (so header stays visible)
   if (showEmptyState && !onColumnFilterChange) {
     return (
       <div className="table-empty">
@@ -413,7 +311,6 @@ const TransactionTable = forwardRef(function TransactionTable({
         </thead>
 
         <tbody>
-          {/* ── Empty state (filter active, no results) ──────────────── */}
           {showEmptyState && (
             <tr>
               <td colSpan={colCount} className="table-empty-cell">
@@ -423,14 +320,22 @@ const TransactionTable = forwardRef(function TransactionTable({
             </tr>
           )}
 
-          {/* ── New row at top ───────────────────────────────────────── */}
           {editingId === NEW_ROW_ID && (
             <tr className="tx-row tx-row--editing tx-row--new">
-              {renderEditCells(true)}
+              <EditTransactionRow
+                values={editingValues}
+                errors={editErrors}
+                onChange={setField}
+                onSave={() => saveNewRow(false)}
+                onSaveAndAnother={() => saveNewRow(true)}
+                onCancel={cancelEdit}
+                suggestedCategories={suggestedCategories}
+                suggestedPartners={suggestedPartners}
+                isNew
+              />
             </tr>
           )}
 
-          {/* ── Existing rows ────────────────────────────────────────── */}
           {displayRows.map((t) => {
             const isSelected = selectedIds.has(t.id);
             const isExpanded = expandedId === t.id;
@@ -438,7 +343,15 @@ const TransactionTable = forwardRef(function TransactionTable({
             if (editingId === t.id) {
               return (
                 <tr key={t.id} className={`tx-row tx-row--${t.type} tx-row--editing`}>
-                  {renderEditCells(false)}
+                  <EditTransactionRow
+                    values={editingValues}
+                    errors={editErrors}
+                    onChange={setField}
+                    onSave={saveEdit}
+                    onCancel={cancelEdit}
+                    suggestedCategories={suggestedCategories}
+                    suggestedPartners={suggestedPartners}
+                  />
                 </tr>
               );
             }

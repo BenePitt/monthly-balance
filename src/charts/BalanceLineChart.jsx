@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -14,12 +15,7 @@ import {
   calculateDailyPeriodStats,
   calculateStartBalanceFromCurrentBalance,
 } from '../domain/balanceCalculator';
-import { formatCurrency, formatDate } from '../utils/formatting';
-
-function euroAxisFormatter(value) {
-  if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}k €`;
-  return `${value} €`;
-}
+import { formatCurrency, formatDate, euroAxisFormatter } from '../utils/formatting';
 
 function formatAxisDate(isoDate) {
   const [, month, day] = isoDate.split('-');
@@ -35,37 +31,31 @@ export default function BalanceLineChart() {
     lineChartCurrentBalance,
   } = useApp();
   const { startYear, startMonth, endYear, endMonth } = dateRange;
-  const effectiveStartBalance = lineChartBalanceMode === 'current'
-    ? calculateStartBalanceFromCurrentBalance(
-      filteredTransactions,
-      startYear,
-      startMonth,
-      endYear,
-      endMonth,
-      lineChartCurrentBalance
-    )
-    : lineChartStartBalance;
-  const dailyStats = calculateDailyPeriodStats(
-    filteredTransactions,
-    startYear,
-    startMonth,
-    endYear,
-    endMonth,
-    effectiveStartBalance
-  );
-  const { days } = dailyStats;
 
-  if (days.length === 0) {
+  const effectiveStartBalance = useMemo(() => {
+    if (lineChartBalanceMode !== 'current') return lineChartStartBalance;
+    return calculateStartBalanceFromCurrentBalance(
+      filteredTransactions, startYear, startMonth, endYear, endMonth, lineChartCurrentBalance
+    );
+  }, [lineChartBalanceMode, lineChartStartBalance, filteredTransactions, startYear, startMonth, endYear, endMonth, lineChartCurrentBalance]);
+
+  const data = useMemo(() => {
+    const stats = calculateDailyPeriodStats(
+      filteredTransactions, startYear, startMonth, endYear, endMonth, effectiveStartBalance
+    );
+    return stats.days.map((day) => ({
+      name: day.date,
+      Einnahmen: day.income,
+      Ausgaben: day.expense,
+      Bilanz: day.balance,
+    }));
+  }, [filteredTransactions, startYear, startMonth, endYear, endMonth, effectiveStartBalance]);
+
+  const showDots = data.length <= 45;
+
+  if (data.length === 0) {
     return <div className="chart-empty">Kein Zeitraum ausgewählt.</div>;
   }
-
-  const data = days.map((day) => ({
-    name: day.date,
-    Einnahmen: day.income,
-    Ausgaben: day.expense,
-    Bilanz: day.balance,
-  }));
-  const showDots = data.length <= 45;
 
   return (
     <ResponsiveContainer width="100%" height={320}>

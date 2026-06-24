@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -10,7 +11,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { formatCurrency, formatMonthShort } from '../utils/formatting';
+import { formatCurrency, formatMonthShort, euroAxisFormatter } from '../utils/formatting';
 import { buildGroupedChartData } from '../domain/balanceCalculator';
 
 const CHART_COLORS = [
@@ -28,14 +29,32 @@ function euroTooltipFormatter(value) {
   return [formatCurrency(value), ''];
 }
 
-function euroAxisFormatter(value) {
-  if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}k €`;
-  return `${value} €`;
-}
-
 export default function BalanceBarChart() {
   const { periodStats, barGroupBy } = useApp();
   const { months } = periodStats;
+
+  const defaultData = useMemo(
+    () => months.map((m) => ({
+      name: formatMonthShort(m.year, m.month),
+      Einnahmen: m.income,
+      Ausgaben: m.expense,
+      Bilanz: m.balance,
+    })),
+    [months]
+  );
+
+  const groupedChartResult = useMemo(() => {
+    if (!barGroupBy) return null;
+    const { series } = buildGroupedChartData(periodStats, barGroupBy);
+    const data = months.map((m, i) => {
+      const entry = { name: formatMonthShort(m.year, m.month) };
+      for (const s of series) {
+        entry[s.name] = s.data[i];
+      }
+      return entry;
+    });
+    return { series, data };
+  }, [periodStats, barGroupBy, months]);
 
   if (months.length === 0) {
     return <div className="chart-empty">Kein Zeitraum ausgewählt.</div>;
@@ -43,16 +62,9 @@ export default function BalanceBarChart() {
 
   // Default: 3 bars per month (Einnahmen, Ausgaben, Bilanz)
   if (!barGroupBy) {
-    const data = months.map((m) => ({
-      name: formatMonthShort(m.year, m.month),
-      Einnahmen: m.income,
-      Ausgaben: m.expense,
-      Bilanz: m.balance,
-    }));
-
     return (
       <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+        <BarChart data={defaultData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
           <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
@@ -71,15 +83,7 @@ export default function BalanceBarChart() {
   }
 
   // Grouped: one series per unique dimension value, net amount per month
-  const { series } = buildGroupedChartData(periodStats, barGroupBy);
-
-  const data = months.map((m, i) => {
-    const entry = { name: formatMonthShort(m.year, m.month) };
-    for (const s of series) {
-      entry[s.name] = s.data[i];
-    }
-    return entry;
-  });
+  const { series, data } = groupedChartResult;
 
   return (
     <ResponsiveContainer width="100%" height={320}>
