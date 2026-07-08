@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   LineChart,
   Line,
@@ -29,6 +29,7 @@ export default function BalanceLineChart() {
     lineChartBalanceMode,
     lineChartStartBalance,
     lineChartCurrentBalance,
+    dispatch,
   } = useApp();
   const { startYear, startMonth, endYear, endMonth } = dateRange;
 
@@ -51,6 +52,22 @@ export default function BalanceLineChart() {
     }));
   }, [filteredTransactions, startYear, startMonth, endYear, endMonth, effectiveStartBalance]);
 
+  const lastIndexRef = useRef(null);
+
+  function handleChartClick(chartData) {
+    if (chartData?.activeTooltipIndex !== undefined) lastIndexRef.current = chartData.activeTooltipIndex;
+  }
+
+  function handleDoubleClick() {
+    const idx = lastIndexRef.current;
+    if (idx != null && data[idx]) {
+      const [yearStr, monthStr] = data[idx].name.split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: year, startMonth: month, endYear: year, endMonth: month } });
+    }
+  }
+
   const showDots = data.length <= 45;
 
   if (data.length === 0) {
@@ -58,8 +75,9 @@ export default function BalanceLineChart() {
   }
 
   return (
+    <div onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
     <ResponsiveContainer width="100%" height={320}>
-      <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+      <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis
           dataKey="name"
@@ -101,5 +119,6 @@ export default function BalanceLineChart() {
         />
       </LineChart>
     </ResponsiveContainer>
+    </div>
   );
 }

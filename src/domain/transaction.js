@@ -1,30 +1,42 @@
 import { v4 as uuidv4 } from 'uuid';
+import { AppLogger } from '../utils/AppLogger';
 
 /**
  * Creates a new transaction object with generated id and timestamps.
  * @param {Object} fields - Transaction fields
  * @returns {Object} Complete transaction object
  */
-export function createTransaction({ date, type, amount, purpose, category, partner, recurrence }) {
+export function createTransaction({ date, type, amount, purpose, category, partner, recurrence }, source = 'manuell') {
   const now = new Date().toISOString();
-  return {
+  const tx = {
     id: uuidv4(),
-    date,          // ISO string "YYYY-MM-DD"
-    type,          // "income" | "expense"
+    date,
+    type,
     amount: parseFloat(amount),
     purpose,
     category,
     partner,
-    recurrence,    // "once" | "monthly"
+    recurrence,
     createdAt: now,
     updatedAt: now,
   };
+  AppLogger.log('TRANSAKTION ANGELEGT', { source, id: tx.id, date, type, amount: tx.amount, purpose, category, partner });
+  return tx;
 }
 
 /**
  * Returns a new transaction with updated fields and updatedAt timestamp.
  */
 export function updateTransaction(transaction, changes) {
+  const changedFields = {};
+  for (const [key, newVal] of Object.entries(changes)) {
+    if (key !== 'updatedAt' && transaction[key] !== undefined && String(transaction[key]) !== String(newVal)) {
+      changedFields[key] = [transaction[key], newVal];
+    }
+  }
+  if (Object.keys(changedFields).length > 0) {
+    AppLogger.log('TRANSAKTION AKTUALISIERT', { id: transaction.id, changed: changedFields });
+  }
   return {
     ...transaction,
     ...changes,

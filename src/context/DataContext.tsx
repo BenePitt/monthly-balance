@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { Transaction, Filters, DateRange, PeriodStats } from '../types';
+import type { Transaction, Filters, DateRange, PeriodStats, LineChartBalanceMode } from '../types';
 
 export interface DataContextValue {
   transactions: Transaction[];
@@ -16,6 +16,12 @@ export interface DataContextValue {
   deleteTransaction: (id: string) => Promise<void>;
   loadDemoData: (demos: Transaction[]) => Promise<void>;
   clearAllTransactions: () => Promise<void>;
+  importAllData: (data: {
+    transactions: Transaction[];
+    startBalance: number;
+    currentBalance: number;
+    balanceMode: LineChartBalanceMode;
+  }) => Promise<void>;
 }
 
 export const DataContext = createContext<DataContextValue | null>(null);

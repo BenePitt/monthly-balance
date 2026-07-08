@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   BarChart,
   Bar,
@@ -30,8 +30,21 @@ function euroTooltipFormatter(value) {
 }
 
 export default function BalanceBarChart() {
-  const { periodStats, barGroupBy } = useApp();
+  const { periodStats, barGroupBy, dispatch } = useApp();
   const { months } = periodStats;
+  const lastIndexRef = useRef(null);
+
+  function handleChartClick(data) {
+    if (data?.activeTooltipIndex !== undefined) lastIndexRef.current = data.activeTooltipIndex;
+  }
+
+  function handleDoubleClick() {
+    const idx = lastIndexRef.current;
+    if (idx != null && months[idx]) {
+      const { year, month } = months[idx];
+      dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: year, startMonth: month, endYear: year, endMonth: month } });
+    }
+  }
 
   const defaultData = useMemo(
     () => months.map((m) => ({
@@ -63,8 +76,34 @@ export default function BalanceBarChart() {
   // Default: 3 bars per month (Einnahmen, Ausgaben, Bilanz)
   if (!barGroupBy) {
     return (
+      <div onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
+        <ResponsiveContainer width="100%" height={320}>
+          <BarChart data={defaultData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+            <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
+            <Tooltip
+              formatter={(value, name) => [formatCurrency(value), name]}
+              contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
+            />
+            <Legend />
+            <ReferenceLine y={0} stroke="#94a3b8" />
+            <Bar dataKey="Einnahmen" fill="#22c55e" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Ausgaben" fill="#ef4444" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Bilanz" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
+  // Grouped: one series per unique dimension value, net amount per month
+  const { series, data } = groupedChartResult;
+
+  return (
+    <div onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
       <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={defaultData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+        <BarChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
           <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
@@ -74,38 +113,16 @@ export default function BalanceBarChart() {
           />
           <Legend />
           <ReferenceLine y={0} stroke="#94a3b8" />
-          <Bar dataKey="Einnahmen" fill="#22c55e" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="Ausgaben" fill="#ef4444" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="Bilanz" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+          {series.map((s, i) => (
+            <Bar
+              key={s.name}
+              dataKey={s.name}
+              fill={CHART_COLORS[i % CHART_COLORS.length]}
+              radius={[3, 3, 0, 0]}
+            />
+          ))}
         </BarChart>
       </ResponsiveContainer>
-    );
-  }
-
-  // Grouped: one series per unique dimension value, net amount per month
-  const { series, data } = groupedChartResult;
-
-  return (
-    <ResponsiveContainer width="100%" height={320}>
-      <BarChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-        <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
-        <Tooltip
-          formatter={(value, name) => [formatCurrency(value), name]}
-          contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
-        />
-        <Legend />
-        <ReferenceLine y={0} stroke="#94a3b8" />
-        {series.map((s, i) => (
-          <Bar
-            key={s.name}
-            dataKey={s.name}
-            fill={CHART_COLORS[i % CHART_COLORS.length]}
-            radius={[3, 3, 0, 0]}
-          />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+    </div>
   );
 }

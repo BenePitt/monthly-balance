@@ -49,6 +49,11 @@ export default function MonthRangeSelector() {
       sY = start <= 0 ? y - 1 : y;
       sM = start <= 0 ? 12 + start : start;
       eY = y; eM = m;
+    } else if (preset === 'last') {
+      const prev = m - 1;
+      sY = prev <= 0 ? y - 1 : y;
+      sM = prev <= 0 ? 12 : prev;
+      eY = sY; eM = sM;
     } else if (preset === 'year') {
       sY = y; sM = 1; eY = y; eM = 12;
     }
@@ -91,6 +96,7 @@ export default function MonthRangeSelector() {
       </div>
       <div className="month-range-presets">
         <button className="btn btn-sm btn-outline" onClick={() => setPreset('current')}>Aktueller Monat</button>
+        <button className="btn btn-sm btn-outline" onClick={() => setPreset('last')}>Letzter Monat</button>
         <button className="btn btn-sm btn-outline" onClick={() => setPreset('3months')}>Letzte 3 Monate</button>
         <button className="btn btn-sm btn-outline" onClick={() => setPreset('6months')}>Letzte 6 Monate</button>
         <button className="btn btn-sm btn-outline" onClick={() => setPreset('year')}>Aktuelles Jahr</button>

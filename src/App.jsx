@@ -6,6 +6,7 @@ import { legalData } from './legal/legalData';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Transaktionen = lazy(() => import('./pages/Transaktionen'));
+const Einstellungen = lazy(() => import('./pages/Einstellungen'));
 
 function AppContent() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -16,6 +17,7 @@ function AppContent() {
     switch (activePage) {
       case 'dashboard': return <Dashboard />;
       case 'transaktionen': return <Transaktionen />;
+      case 'einstellungen': return <Einstellungen />;
       default: return <Dashboard />;
     }
   }

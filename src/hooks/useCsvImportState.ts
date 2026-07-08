@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { parseBankCsv, toTransactionFields } from '../domain/csvImport';
+import { AppLogger } from '../utils/AppLogger';
 import { Transaction } from '../types';
 
 interface ImportDraft {
@@ -82,7 +83,7 @@ export function useCsvImportState(existingTransactions: Transaction[], onImportD
   ]), [existingTransactions, drafts]);
 
   function parseCsv(text: string, nextMode: 'auto' | 'manual') {
-    const result = parseBankCsv(text, { fillUnknowns: nextMode === 'auto', existingTransactions });
+    const result = parseBankCsv(text, { fillUnknowns: nextMode === 'auto', existingTransactions, debug: AppLogger.isDebugMode(), fileName });
     setDrafts(withImportIds(result.transactions));
     setWarnings(result.warnings);
     setSelectedIds([]);

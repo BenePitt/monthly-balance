@@ -332,6 +332,7 @@ const TransactionTable = forwardRef(function TransactionTable({
                 suggestedCategories={suggestedCategories}
                 suggestedPartners={suggestedPartners}
                 isNew
+                existingTransactions={allTransactions}
               />
             </tr>
           )}

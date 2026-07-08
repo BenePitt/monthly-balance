@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { formatDate } from '../utils/formatting';
 import { TYPE_LABELS, RECURRENCE_LABELS } from '../domain/transaction';
 import { getUniqueValues } from '../domain/filterEngine';
+import { useTransactionSuggestion } from '../hooks/useTransactionSuggestion';
 
 const EMPTY_FORM = {
   date: '',
@@ -23,6 +24,9 @@ export default function TransactionForm({ editTransaction, onClose }) {
   const suggestedPartners = getUniqueValues(transactions, 'partner');
   const isEditing = !!editTransaction;
 
+  const [autoFilled, setAutoFilled] = useState({ category: false, partner: false });
+  const suggestion = useTransactionSuggestion(form.purpose, form.type, transactions);
+
   useEffect(() => {
     if (editTransaction) {
       setForm({
@@ -39,7 +43,24 @@ export default function TransactionForm({ editTransaction, onClose }) {
       setForm({ ...EMPTY_FORM, date: today });
     }
     setErrors({});
+    setAutoFilled({ category: false, partner: false });
   }, [editTransaction]);
+
+  useEffect(() => {
+    if (isEditing) return;
+    setForm((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      if (suggestion.category && !prev.category) { next.category = suggestion.category; changed = true; }
+      if (suggestion.partner && !prev.partner) { next.partner = suggestion.partner; changed = true; }
+      if (!changed) return prev;
+      setAutoFilled({
+        category: !!(suggestion.category && !prev.category),
+        partner: !!(suggestion.partner && !prev.partner),
+      });
+      return next;
+    });
+  }, [suggestion, isEditing]);
 
   function validate() {
     const e = {};
@@ -78,6 +99,9 @@ export default function TransactionForm({ editTransaction, onClose }) {
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+    if (field === 'category' || field === 'partner') {
+      setAutoFilled((prev) => ({ ...prev, [field]: false }));
+    }
   }
 
   return (
@@ -190,6 +214,9 @@ export default function TransactionForm({ editTransaction, onClose }) {
                 {suggestedCategories.map((c) => <option key={c} value={c} />)}
               </datalist>
             )}
+            {autoFilled.category && (
+              <span className="text-muted" style={{ fontSize: '0.78rem' }}>Vorschlag aus vorhandenen Daten</span>
+            )}
             {errors.category && <span className="form-error">{errors.category}</span>}
           </label>
         </div>
@@ -209,6 +236,9 @@ export default function TransactionForm({ editTransaction, onClose }) {
               <datalist id="partners-list">
                 {suggestedPartners.map((p) => <option key={p} value={p} />)}
               </datalist>
+            )}
+            {autoFilled.partner && (
+              <span className="text-muted" style={{ fontSize: '0.78rem' }}>Vorschlag aus vorhandenen Daten</span>
             )}
             {errors.partner && <span className="form-error">{errors.partner}</span>}
           </label>

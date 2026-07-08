@@ -6,6 +6,7 @@ export default function Navigation({ activePage, onNavigate }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'transaktionen', label: 'Transaktionen' },
+    { id: 'einstellungen', label: 'Einstellungen' },
   ];
 
   return (

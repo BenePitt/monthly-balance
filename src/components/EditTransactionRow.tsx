@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { TYPE_LABELS, RECURRENCE_LABELS } from '../domain/transaction';
 import { getPurposeRows } from '../utils/formatting';
+import { useTransactionSuggestion } from '../hooks/useTransactionSuggestion';
 
 interface EditValues {
   date?: string;
@@ -29,6 +31,7 @@ interface EditTransactionRowProps {
   suggestedCategories: string[];
   suggestedPartners: string[];
   isNew?: boolean;
+  existingTransactions?: object[];
 }
 
 export default function EditTransactionRow({
@@ -41,7 +44,22 @@ export default function EditTransactionRow({
   suggestedCategories,
   suggestedPartners,
   isNew = false,
+  existingTransactions = [],
 }: EditTransactionRowProps) {
+  const idPrefix = isNew ? 'edit-new' : 'edit-existing';
+
+  const suggestion = useTransactionSuggestion(
+    isNew ? (values.purpose ?? '') : '',
+    values.type ?? 'expense',
+    existingTransactions as any[]
+  );
+
+  useEffect(() => {
+    if (!isNew) return;
+    if (suggestion.category && !values.category) onChange('category', suggestion.category);
+    if (suggestion.partner && !values.partner) onChange('partner', suggestion.partner);
+  }, [suggestion]);
+
   return (
     <>
       <td className="td-expand" />
@@ -84,24 +102,30 @@ export default function EditTransactionRow({
         />
       </td>
       <td>
-        <select
-          className={`form-input form-select form-input-compact${errors.category ? ' form-input--error' : ''}`}
+        <input
+          type="text"
+          className={`form-input form-input-compact${errors.category ? ' form-input--error' : ''}`}
           value={values.category ?? ''}
+          list={`${idPrefix}-category-options`}
+          placeholder="– Kategorie –"
           onChange={(e) => onChange('category', e.target.value)}
-        >
-          <option value="">– Kategorie –</option>
-          {suggestedCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        />
+        <datalist id={`${idPrefix}-category-options`}>
+          {suggestedCategories.map((c) => <option key={c} value={c} />)}
+        </datalist>
       </td>
       <td>
-        <select
-          className={`form-input form-select form-input-compact${errors.partner ? ' form-input--error' : ''}`}
+        <input
+          type="text"
+          className={`form-input form-input-compact${errors.partner ? ' form-input--error' : ''}`}
           value={values.partner ?? ''}
+          list={`${idPrefix}-partner-options`}
+          placeholder="– Partner –"
           onChange={(e) => onChange('partner', e.target.value)}
-        >
-          <option value="">– Partner –</option>
-          {suggestedPartners.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
+        />
+        <datalist id={`${idPrefix}-partner-options`}>
+          {suggestedPartners.map((p) => <option key={p} value={p} />)}
+        </datalist>
       </td>
       <td>
         <select

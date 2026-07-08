@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useMemo } from 'react';
+import { AppLogger } from '../utils/AppLogger';
 import { TransactionService } from '../services/TransactionService';
 import { createStorageAdapter } from '../storage/storageFactory';
 import { applyFilters } from '../domain/filterEngine';
@@ -138,6 +139,7 @@ export function AppProvider({ children }) {
         state.lineChartStartBalance,
         state.lineChartCurrentBalance,
       ));
+      AppLogger.log('GESPEICHERT', { count: transactions.length, adapter: 'Desktop', status: 'OK' });
     }
   }, [state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance, isDesktop, buildAppData]);
 
@@ -166,6 +168,7 @@ export function AppProvider({ children }) {
   }, [state.transactions, saveAppData]);
 
   const loadDemoData = useCallback(async (demoTransactions) => {
+    AppLogger.log('DEMO-DATEN', { count: demoTransactions.length });
     const updated = [...state.transactions, ...demoTransactions];
     dispatch({ type: 'SET_TRANSACTIONS', payload: updated });
     await saveAppData(updated);
@@ -178,9 +181,26 @@ export function AppProvider({ children }) {
   }, [state.transactions, saveAppData]);
 
   const clearAllTransactions = useCallback(async () => {
+    AppLogger.log('ALLE GELÖSCHT', { count: state.transactions.length });
     dispatch({ type: 'SET_TRANSACTIONS', payload: [] });
     await saveAppData([]);
-  }, [saveAppData]);
+  }, [state.transactions.length, saveAppData]);
+
+  const importAllData = useCallback(async (data) => {
+    AppLogger.log('JSON-IMPORT', { mode: data._importMode ?? 'replace', count: data.transactions.length });
+    dispatch({ type: 'SET_TRANSACTIONS', payload: data.transactions });
+    dispatch({ type: 'SET_LINE_CHART_BALANCE_MODE', payload: data.balanceMode });
+    dispatch({ type: 'SET_LINE_CHART_START_BALANCE', payload: data.startBalance });
+    dispatch({ type: 'SET_LINE_CHART_CURRENT_BALANCE', payload: data.currentBalance });
+    if (isDesktop && storageAdapter.saveData) {
+      await storageAdapter.saveData(buildAppData(
+        data.transactions,
+        data.balanceMode,
+        data.startBalance,
+        data.currentBalance,
+      ));
+    }
+  }, [isDesktop, storageAdapter, buildAppData]);
 
   const manualSave = useCallback(async () => {
     if (!isDesktop || !storageAdapter.saveData) return;
@@ -220,11 +240,13 @@ export function AppProvider({ children }) {
     deleteTransaction,
     loadDemoData,
     clearAllTransactions,
+    importAllData,
   }), [
     state.transactions, filteredTransactions, periodStats,
     state.filters, state.dateRange, state.isLoading,
     addTransaction, importTransactions, updateTransaction,
     bulkUpdateTransactions, deleteTransaction, loadDemoData, clearAllTransactions,
+    importAllData,
   ]);
 
   const uiValue = useMemo(() => ({

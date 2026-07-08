@@ -110,6 +110,7 @@ export default function CsvPreviewTable({
                   className={`form-input${!String(draft.category).trim() ? ' form-input--error' : ''}`}
                   value={draft.category}
                   list="import-category-options"
+                  placeholder="Kategorie"
                   onChange={(e) => onUpdateDraft(draft.importId, { category: e.target.value })}
                 />
               </td>
@@ -119,6 +120,7 @@ export default function CsvPreviewTable({
                   className={`form-input${!String(draft.partner).trim() ? ' form-input--error' : ''}`}
                   value={draft.partner}
                   list="import-partner-options"
+                  placeholder="Partner"
                   onChange={(e) => onUpdateDraft(draft.importId, { partner: e.target.value })}
                 />
               </td>

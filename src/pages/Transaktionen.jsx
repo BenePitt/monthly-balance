@@ -4,6 +4,7 @@ import FilterPanel from '../components/FilterPanel';
 import MonthRangeSelector from '../components/MonthRangeSelector';
 import BulkEditForm from '../components/BulkEditForm';
 import CsvImportPanel from '../components/CsvImportPanel';
+import JsonImportExportPanel from '../components/JsonImportExportPanel';
 import { useApp } from '../context/AppContext';
 import { createDemoTransactions } from '../utils/demoData';
 import { ROW_LIMIT_OPTIONS } from '../constants/ui';
@@ -69,6 +70,11 @@ export default function Transaktionen() {
       {/* ── Daten hinzufügen (CSV + Neue Transaktion) ───────────────────── */}
       <section className="section">
         <CsvImportPanel onNewTransaction={handleNewTransaction} />
+      </section>
+
+      {/* ── JSON Export / Import ─────────────────────────────────────────── */}
+      <section className="section">
+        <JsonImportExportPanel />
       </section>
 
       {/* ── Zeitraum ────────────────────────────────────────────────────── */}

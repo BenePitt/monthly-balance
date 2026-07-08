@@ -1,4 +1,5 @@
 import { createTransaction, updateTransaction } from '../domain/transaction';
+import { AppLogger } from '../utils/AppLogger';
 
 /**
  * TransactionService manages CRUD operations for transactions
@@ -21,7 +22,8 @@ export class TransactionService {
   }
 
   async addMany(fieldsList, currentTransactions) {
-    const newTransactions = fieldsList.map((fields) => createTransaction(fields));
+    const newTransactions = fieldsList.map((fields) => createTransaction(fields, 'import'));
+    AppLogger.log('BATCH ANGELEGT', { count: newTransactions.length });
     const updated = [...currentTransactions, ...newTransactions];
     await this._storage.save(updated);
     return updated;
@@ -36,12 +38,15 @@ export class TransactionService {
   }
 
   async remove(id, currentTransactions) {
+    const tx = currentTransactions.find((t) => t.id === id);
+    if (tx) AppLogger.log('TRANSAKTION GELÖSCHT', { id: tx.id, date: tx.date, amount: tx.amount });
     const updated = currentTransactions.filter((t) => t.id !== id);
     await this._storage.save(updated);
     return updated;
   }
 
   async bulkUpdate(ids, changes, currentTransactions) {
+    AppLogger.log('BULK-EDIT', { count: ids.length, changes });
     const idSet = new Set(ids);
     const updated = currentTransactions.map((t) =>
       idSet.has(t.id) ? updateTransaction(t, changes) : t

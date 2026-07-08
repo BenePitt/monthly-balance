@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { formatCurrency, formatMonthYear } from '../utils/formatting';
 
 function MonthSummaryTable() {
-  const { periodStats } = useApp();
+  const { periodStats, dispatch } = useApp();
   const { months } = periodStats;
 
   if (months.length === 0) {
@@ -23,7 +23,12 @@ function MonthSummaryTable() {
         </thead>
         <tbody>
           {months.map((m) => (
-            <tr key={`${m.year}-${m.month}`} className={m.balance >= 0 ? 'month-row--positive' : 'month-row--negative'}>
+            <tr
+              key={`${m.year}-${m.month}`}
+              className={m.balance >= 0 ? 'month-row--positive' : 'month-row--negative'}
+              onDoubleClick={() => dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: m.year, startMonth: m.month, endYear: m.year, endMonth: m.month } })}
+              style={{ cursor: 'pointer' }}
+            >
               <td>{formatMonthYear(m.year, m.month)}</td>
               <td className="text-right tx-amount--income">{formatCurrency(m.income)}</td>
               <td className="text-right tx-amount--expense">{formatCurrency(m.expense)}</td>
