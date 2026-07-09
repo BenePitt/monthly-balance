@@ -1,11 +1,12 @@
 import { useApp } from '../context/AppContext';
 
 export default function Navigation({ activePage, onNavigate }) {
-  const { isElectron, saveStatus, manualSave } = useApp();
+  const { isElectron, saveStatus, manualSave, accounts, selectedAccountId, setSelectedAccount } = useApp();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'transaktionen', label: 'Transaktionen' },
+    { id: 'konten', label: 'Konten' },
     { id: 'einstellungen', label: 'Einstellungen' },
   ];
 
@@ -26,6 +27,18 @@ export default function Navigation({ activePage, onNavigate }) {
             {item.label}
           </button>
         ))}
+        {accounts.length > 0 && (
+          <select
+            className="nav-account-select"
+            value={selectedAccountId}
+            onChange={(e) => setSelectedAccount(e.target.value)}
+            title="Aktives Konto für neue Transaktionen"
+          >
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>{account.name}</option>
+            ))}
+          </select>
+        )}
         {isElectron && (
           <button
             className={`nav-save-btn${saveStatus === 'saved' ? ' nav-save-btn--saved' : ''}`}

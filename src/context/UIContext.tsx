@@ -3,6 +3,8 @@ import { createContext, useContext } from 'react';
 export interface UIContextValue {
   chartType: 'bar' | 'line';
   barGroupBy: 'category' | 'purpose' | 'partner' | null;
+  categorySort: 'none' | 'income' | 'expense' | 'balance';
+  hideEmptyCategories: boolean;
   lineChartBalanceMode: 'start' | 'current';
   lineChartStartBalance: number;
   lineChartCurrentBalance: number;

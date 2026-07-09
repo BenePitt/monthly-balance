@@ -12,6 +12,7 @@ import {
 import { calculatePeriodStats } from '../domain/balanceCalculator';
 import { formatCurrency, formatMonthShort, formatDate } from '../utils/formatting';
 import { TYPE_LABELS, RECURRENCE_LABELS } from '../domain/transaction';
+import { useApp } from '../context/AppContext';
 
 function euroAxisFormatter(value) {
   if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}k`;
@@ -64,8 +65,13 @@ function TxTooltip({ tx, pos }) {
 
 function CategoryMiniChart({ category, transactions, dateRange }) {
   const { startYear, startMonth, endYear, endMonth } = dateRange;
+  const { dispatch } = useApp();
   const [hoveredTx, setHoveredTx] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  function handleDoubleClick() {
+    dispatch({ type: 'SET_FILTER_CATEGORIES', payload: [category] });
+  }
 
   const categoryTransactions = useMemo(
     () => transactions.filter((t) => t.category === category),
@@ -111,22 +117,20 @@ function CategoryMiniChart({ category, transactions, dateRange }) {
     setHoveredTx(null);
   }
 
-  const lastMonth = periodStats.months.at(-1);
-
   return (
-    <div className="category-mini-card">
+    <div className="category-mini-card" onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
       <h3 className="category-mini-title">{category}</h3>
 
-      {lastMonth && (
+      {periodStats.months.length > 0 && (
         <div className="category-mini-stats">
           <span className="category-mini-stat category-mini-stat--income">
-            +{formatCurrency(lastMonth.income)}
+            +{formatCurrency(periodStats.totalIncome)}
           </span>
           <span className="category-mini-stat category-mini-stat--expense">
-            −{formatCurrency(lastMonth.expense)}
+            −{formatCurrency(periodStats.totalExpense)}
           </span>
           <span className="category-mini-stat category-mini-stat--balance">
-            ={formatCurrency(lastMonth.balance)}
+            ={formatCurrency(periodStats.totalBalance)}
           </span>
         </div>
       )}

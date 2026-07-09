@@ -7,17 +7,18 @@ import {
   calculateDailyPeriodStats,
   calculateStartBalanceFromCurrentBalance,
   calculatePeriodStats,
+  calculateDimensionTotals,
   getDaysInRange,
   getMonthsInRange,
 } from '../balanceCalculator';
 
-const income = (date, amount, recurrence = 'once') => ({
-  id: '1', date, type: 'income', amount, purpose: 'Test', category: 'Test',
+const income = (date, amount, recurrence = 'once', category = 'Test') => ({
+  id: '1', date, type: 'income', amount, purpose: 'Test', category,
   partner: 'Test', recurrence,
 });
 
-const expense = (date, amount, recurrence = 'once') => ({
-  id: '2', date, type: 'expense', amount, purpose: 'Test', category: 'Test',
+const expense = (date, amount, recurrence = 'once', category = 'Test') => ({
+  id: '2', date, type: 'expense', amount, purpose: 'Test', category,
   partner: 'Test', recurrence,
 });
 
@@ -273,5 +274,46 @@ describe('calculatePeriodStats', () => {
     expect(feb.expense).toBeCloseTo(950 + 100); // monthly 950 + once 100
     const jan = stats.months.find((m) => m.month === 1);
     expect(jan.expense).toBeCloseTo(950); // only monthly
+  });
+});
+
+// --- calculateDimensionTotals ---
+
+describe('calculateDimensionTotals', () => {
+  it('summiert Einnahmen/Ausgaben pro Kategorie über mehrere Monate', () => {
+    const transactions = [
+      income('2026-01-01', 3200, 'monthly', 'Gehalt'),
+      expense('2026-01-05', 950, 'monthly', 'Wohnen'),
+      expense('2026-02-10', 100, 'once', 'Lebensmittel'),
+    ];
+    const totals = calculateDimensionTotals(transactions, 'category', 2026, 1, 2026, 3);
+
+    const gehalt = totals.find((t) => t.label === 'Gehalt');
+    expect(gehalt.income).toBeCloseTo(3200 * 3);
+    expect(gehalt.expense).toBe(0);
+    expect(gehalt.balance).toBeCloseTo(3200 * 3);
+
+    const wohnen = totals.find((t) => t.label === 'Wohnen');
+    expect(wohnen.expense).toBeCloseTo(950 * 3);
+    expect(wohnen.balance).toBeCloseTo(-950 * 3);
+
+    const lebensmittel = totals.find((t) => t.label === 'Lebensmittel');
+    expect(lebensmittel.expense).toBeCloseTo(100);
+  });
+
+  it('Kategorie ohne Transaktionen im Zeitraum taucht nicht auf', () => {
+    const transactions = [income('2025-06-01', 500, 'once', 'Sonstiges')];
+    const totals = calculateDimensionTotals(transactions, 'category', 2026, 1, 2026, 3);
+    expect(totals.find((t) => t.label === 'Sonstiges')).toBeUndefined();
+  });
+
+  it('einmalige Transaktion außerhalb des Zeitraums wird ignoriert', () => {
+    const transactions = [
+      expense('2026-05-01', 200, 'once', 'Freizeit'),
+      income('2026-02-01', 1000, 'once', 'Gehalt'),
+    ];
+    const totals = calculateDimensionTotals(transactions, 'category', 2026, 1, 2026, 3);
+    expect(totals.find((t) => t.label === 'Freizeit')).toBeUndefined();
+    expect(totals.find((t) => t.label === 'Gehalt').income).toBe(1000);
   });
 });

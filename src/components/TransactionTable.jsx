@@ -377,7 +377,7 @@ const TransactionTable = forwardRef(function TransactionTable({
                   <td className={`tx-amount tx-amount--${t.type}`}>
                     {t.type === 'expense' ? '−' : '+'}{formatCurrency(t.amount)}
                   </td>
-                  <td className="td-purpose">{t.purpose}</td>
+                  <td className="td-purpose" title={t.purpose}>{t.purpose}</td>
                   <td><span className="category-tag">{t.category}</span></td>
                   <td className="tx-nowrap">{t.partner}</td>
                   <td>

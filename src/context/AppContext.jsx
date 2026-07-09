@@ -4,12 +4,21 @@ import { TransactionService } from '../services/TransactionService';
 import { createStorageAdapter } from '../storage/storageFactory';
 import { applyFilters } from '../domain/filterEngine';
 import { calculatePeriodStats } from '../domain/balanceCalculator';
+import {
+  DEFAULT_ACCOUNT_ID,
+  createDefaultAccount,
+  createAccount,
+  renameAccount as renameAccountDomain,
+  canDeleteAccount,
+} from '../domain/account';
 import { DataContext } from './DataContext';
 import { UIContext } from './UIContext';
 
 const now = new Date();
 const DEFAULT_STATE = {
   transactions: [],
+  accounts: [],
+  selectedAccountId: DEFAULT_ACCOUNT_ID,
   filters: {
     purpose: '',
     categories: [],
@@ -23,6 +32,8 @@ const DEFAULT_STATE = {
   },
   chartType: 'bar',
   barGroupBy: null,
+  categorySort: 'none',
+  hideEmptyCategories: false,
   lineChartBalanceMode: 'start',
   lineChartStartBalance: 0,
   lineChartCurrentBalance: 0,
@@ -53,6 +64,10 @@ function reducer(state, action) {
       return { ...state, chartType: action.payload };
     case 'SET_BAR_GROUP_BY':
       return { ...state, barGroupBy: action.payload };
+    case 'SET_CATEGORY_SORT':
+      return { ...state, categorySort: action.payload };
+    case 'SET_HIDE_EMPTY_CATEGORIES':
+      return { ...state, hideEmptyCategories: action.payload };
     case 'SET_LINE_CHART_BALANCE_MODE':
       return { ...state, lineChartBalanceMode: action.payload };
     case 'SET_LINE_CHART_START_BALANCE':
@@ -61,6 +76,10 @@ function reducer(state, action) {
       return { ...state, lineChartCurrentBalance: action.payload };
     case 'SET_SAVE_STATUS':
       return { ...state, saveStatus: action.payload };
+    case 'SET_ACCOUNTS':
+      return { ...state, accounts: action.payload };
+    case 'SET_SELECTED_ACCOUNT':
+      return { ...state, selectedAccountId: action.payload };
     default:
       return state;
   }
@@ -83,11 +102,13 @@ export function AppProvider({ children }) {
 
   const isDesktop = storageAdapter.isElectron();
 
-  const buildAppData = useCallback((transactions, balanceMode, startBalance, currentBalance) => ({
+  const buildAppData = useCallback((transactions, balanceMode, startBalance, currentBalance, accounts, selectedAccountId) => ({
     transactions,
     balanceMode,
     startBalance,
     currentBalance,
+    accounts,
+    selectedAccountId,
   }), []);
 
   const setSaveStatus = useCallback((status) => {
@@ -100,6 +121,15 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  const seedAccounts = useCallback((loadedAccounts, loadedSelectedAccountId) => {
+    const accounts = loadedAccounts?.length ? loadedAccounts : [createDefaultAccount()];
+    const selectedAccountId = accounts.some((a) => a.id === loadedSelectedAccountId)
+      ? loadedSelectedAccountId
+      : accounts[0].id;
+    dispatch({ type: 'SET_ACCOUNTS', payload: accounts });
+    dispatch({ type: 'SET_SELECTED_ACCOUNT', payload: selectedAccountId });
+  }, []);
+
   useEffect(() => {
     dispatch({ type: 'SET_IS_ELECTRON', payload: isDesktop });
     if (isDesktop && storageAdapter.getData) {
@@ -108,11 +138,13 @@ export function AppProvider({ children }) {
         dispatch({ type: 'SET_LINE_CHART_BALANCE_MODE', payload: data.balanceMode ?? 'start' });
         dispatch({ type: 'SET_LINE_CHART_START_BALANCE', payload: data.startBalance ?? 0 });
         dispatch({ type: 'SET_LINE_CHART_CURRENT_BALANCE', payload: data.currentBalance ?? 0 });
+        seedAccounts(data.accounts, data.selectedAccountId);
         isInitializedRef.current = true;
       });
     } else {
       service.loadAll().then((txs) => {
         dispatch({ type: 'SET_TRANSACTIONS', payload: txs });
+        seedAccounts([], null);
         isInitializedRef.current = true;
       });
     }
@@ -127,33 +159,38 @@ export function AppProvider({ children }) {
         state.lineChartBalanceMode,
         state.lineChartStartBalance,
         state.lineChartCurrentBalance,
+        state.accounts,
+        state.selectedAccountId,
       ));
     }, 500);
   }, [state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance]);
 
-  const saveAppData = useCallback(async (transactions) => {
+  const saveAppData = useCallback(async (transactions, accounts = state.accounts, selectedAccountId = state.selectedAccountId) => {
     if (isDesktop && storageAdapter.saveData) {
       await storageAdapter.saveData(buildAppData(
         transactions,
         state.lineChartBalanceMode,
         state.lineChartStartBalance,
         state.lineChartCurrentBalance,
+        accounts,
+        selectedAccountId,
       ));
       AppLogger.log('GESPEICHERT', { count: transactions.length, adapter: 'Desktop', status: 'OK' });
     }
-  }, [state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance, isDesktop, buildAppData]);
+  }, [state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance, state.accounts, state.selectedAccountId, isDesktop, buildAppData]);
 
   const addTransaction = useCallback(async (fields) => {
-    const updated = await service.add(fields, state.transactions);
+    const updated = await service.add({ ...fields, accountId: state.selectedAccountId }, state.transactions);
     dispatch({ type: 'SET_TRANSACTIONS', payload: updated });
     await saveAppData(updated);
-  }, [state.transactions, saveAppData]);
+  }, [state.transactions, state.selectedAccountId, saveAppData]);
 
   const importTransactions = useCallback(async (fieldsList) => {
-    const updated = await service.addMany(fieldsList, state.transactions);
+    const taggedFieldsList = fieldsList.map((fields) => ({ ...fields, accountId: state.selectedAccountId }));
+    const updated = await service.addMany(taggedFieldsList, state.transactions);
     dispatch({ type: 'SET_TRANSACTIONS', payload: updated });
     await saveAppData(updated);
-  }, [state.transactions, saveAppData]);
+  }, [state.transactions, state.selectedAccountId, saveAppData]);
 
   const updateTransaction = useCallback(async (id, changes) => {
     const updated = await service.update(id, changes, state.transactions);
@@ -198,9 +235,11 @@ export function AppProvider({ children }) {
         data.balanceMode,
         data.startBalance,
         data.currentBalance,
+        state.accounts,
+        state.selectedAccountId,
       ));
     }
-  }, [isDesktop, storageAdapter, buildAppData]);
+  }, [isDesktop, storageAdapter, buildAppData, state.accounts, state.selectedAccountId]);
 
   const manualSave = useCallback(async () => {
     if (!isDesktop || !storageAdapter.saveData) return;
@@ -210,9 +249,43 @@ export function AppProvider({ children }) {
       state.lineChartBalanceMode,
       state.lineChartStartBalance,
       state.lineChartCurrentBalance,
+      state.accounts,
+      state.selectedAccountId,
     ));
     setSaveStatus('saved');
-  }, [state.transactions, state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance, isDesktop, buildAppData, setSaveStatus]);
+  }, [state.transactions, state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance, state.accounts, state.selectedAccountId, isDesktop, buildAppData, setSaveStatus]);
+
+  const addAccount = useCallback(async (name) => {
+    const account = createAccount(name);
+    const updatedAccounts = [...state.accounts, account];
+    dispatch({ type: 'SET_ACCOUNTS', payload: updatedAccounts });
+    await saveAppData(state.transactions, updatedAccounts);
+    return account;
+  }, [state.accounts, state.transactions, saveAppData]);
+
+  const renameAccount = useCallback(async (id, name) => {
+    const updatedAccounts = state.accounts.map((a) => (a.id === id ? renameAccountDomain(a, name) : a));
+    dispatch({ type: 'SET_ACCOUNTS', payload: updatedAccounts });
+    await saveAppData(state.transactions, updatedAccounts);
+  }, [state.accounts, state.transactions, saveAppData]);
+
+  const deleteAccount = useCallback(async (id) => {
+    if (!canDeleteAccount(id, state.transactions)) {
+      throw new Error('Konto kann nicht gelöscht werden: entweder Standardkonto oder es sind noch Transaktionen zugeordnet.');
+    }
+    const updatedAccounts = state.accounts.filter((a) => a.id !== id);
+    dispatch({ type: 'SET_ACCOUNTS', payload: updatedAccounts });
+    const nextSelectedAccountId = state.selectedAccountId === id ? DEFAULT_ACCOUNT_ID : state.selectedAccountId;
+    if (nextSelectedAccountId !== state.selectedAccountId) {
+      dispatch({ type: 'SET_SELECTED_ACCOUNT', payload: nextSelectedAccountId });
+    }
+    AppLogger.log('KONTO GELÖSCHT', { id });
+    await saveAppData(state.transactions, updatedAccounts, nextSelectedAccountId);
+  }, [state.accounts, state.transactions, state.selectedAccountId, saveAppData]);
+
+  const setSelectedAccount = useCallback((id) => {
+    dispatch({ type: 'SET_SELECTED_ACCOUNT', payload: id });
+  }, []);
 
   const filteredTransactions = useMemo(
     () => applyFilters(state.transactions, state.filters),
@@ -232,6 +305,8 @@ export function AppProvider({ children }) {
     filters: state.filters,
     dateRange: state.dateRange,
     isLoading: state.isLoading,
+    accounts: state.accounts,
+    selectedAccountId: state.selectedAccountId,
     dispatch,
     addTransaction,
     importTransactions,
@@ -241,17 +316,24 @@ export function AppProvider({ children }) {
     loadDemoData,
     clearAllTransactions,
     importAllData,
+    addAccount,
+    renameAccount,
+    deleteAccount,
+    setSelectedAccount,
   }), [
     state.transactions, filteredTransactions, periodStats,
     state.filters, state.dateRange, state.isLoading,
+    state.accounts, state.selectedAccountId,
     addTransaction, importTransactions, updateTransaction,
     bulkUpdateTransactions, deleteTransaction, loadDemoData, clearAllTransactions,
-    importAllData,
+    importAllData, addAccount, renameAccount, deleteAccount, setSelectedAccount,
   ]);
 
   const uiValue = useMemo(() => ({
     chartType: state.chartType,
     barGroupBy: state.barGroupBy,
+    categorySort: state.categorySort,
+    hideEmptyCategories: state.hideEmptyCategories,
     lineChartBalanceMode: state.lineChartBalanceMode,
     lineChartStartBalance: state.lineChartStartBalance,
     lineChartCurrentBalance: state.lineChartCurrentBalance,
@@ -260,7 +342,7 @@ export function AppProvider({ children }) {
     dispatch,
     manualSave,
   }), [
-    state.chartType, state.barGroupBy,
+    state.chartType, state.barGroupBy, state.categorySort, state.hideEmptyCategories,
     state.lineChartBalanceMode, state.lineChartStartBalance, state.lineChartCurrentBalance,
     state.saveStatus, state.isElectron,
     manualSave,

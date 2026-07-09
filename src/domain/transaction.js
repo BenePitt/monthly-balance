@@ -1,12 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { AppLogger } from '../utils/AppLogger';
+import { DEFAULT_ACCOUNT_ID } from './account';
 
 /**
  * Creates a new transaction object with generated id and timestamps.
  * @param {Object} fields - Transaction fields
  * @returns {Object} Complete transaction object
  */
-export function createTransaction({ date, type, amount, purpose, category, partner, recurrence }, source = 'manuell') {
+export function createTransaction({ date, type, amount, purpose, category, partner, recurrence, accountId }, source = 'manuell') {
   const now = new Date().toISOString();
   const tx = {
     id: uuidv4(),
@@ -17,6 +18,7 @@ export function createTransaction({ date, type, amount, purpose, category, partn
     category,
     partner,
     recurrence,
+    accountId: accountId ?? DEFAULT_ACCOUNT_ID,
     createdAt: now,
     updatedAt: now,
   };

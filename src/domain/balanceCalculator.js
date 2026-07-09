@@ -303,3 +303,28 @@ export function buildGroupedChartData(periodStats, groupBy) {
 
   return { series };
 }
+
+/**
+ * Aggregates income, expense, and balance totals per dimension value
+ * (e.g. category) across an entire date range, correctly accounting for
+ * recurring "monthly" transactions in each month.
+ * Returns an array of { label, income, expense, balance }.
+ */
+export function calculateDimensionTotals(transactions, dimension, startYear, startMonth, endYear, endMonth) {
+  const periodStats = calculatePeriodStats(transactions, startYear, startMonth, endYear, endMonth);
+  const totals = new Map();
+
+  for (const monthData of periodStats.months) {
+    for (const entry of groupMonthByDimension(monthData, dimension)) {
+      if (!totals.has(entry.label)) {
+        totals.set(entry.label, { label: entry.label, income: 0, expense: 0, balance: 0 });
+      }
+      const total = totals.get(entry.label);
+      total.income += entry.income;
+      total.expense += entry.expense;
+      total.balance = total.income - total.expense;
+    }
+  }
+
+  return Array.from(totals.values());
+}

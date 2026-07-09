@@ -29,6 +29,25 @@ function euroTooltipFormatter(value) {
   return [formatCurrency(value), ''];
 }
 
+function SingleBarTooltip({ active, payload, barGroupBy }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const entry = payload[0];
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '8px',
+      padding: '8px 12px',
+      fontSize: '13px',
+    }}>
+      <div style={{ color: '#64748b', marginBottom: 4 }}>{DIMENSION_LABELS[barGroupBy]}</div>
+      <div style={{ fontWeight: 600, color: entry.color }}>
+        {entry.name}: {formatCurrency(entry.value)}
+      </div>
+    </div>
+  );
+}
+
 export default function BalanceBarChart() {
   const { periodStats, barGroupBy, dispatch } = useApp();
   const { months } = periodStats;
@@ -99,6 +118,7 @@ export default function BalanceBarChart() {
 
   // Grouped: one series per unique dimension value, net amount per month
   const { series, data } = groupedChartResult;
+  const isSingleMonth = months.length === 1;
 
   return (
     <div onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
@@ -107,10 +127,17 @@ export default function BalanceBarChart() {
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
           <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
-          <Tooltip
-            formatter={(value, name) => [formatCurrency(value), name]}
-            contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
-          />
+          {isSingleMonth ? (
+            <Tooltip
+              shared={false}
+              content={(props) => <SingleBarTooltip {...props} barGroupBy={barGroupBy} />}
+            />
+          ) : (
+            <Tooltip
+              formatter={(value, name) => [formatCurrency(value), name]}
+              contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
+            />
+          )}
           <Legend />
           <ReferenceLine y={0} stroke="#94a3b8" />
           {series.map((s, i) => (

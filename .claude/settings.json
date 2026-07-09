@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/lint-changed-file.js",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/check-domain-layering.js",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/run-tests-on-stop.js",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

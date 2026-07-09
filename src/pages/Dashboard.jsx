@@ -8,18 +8,55 @@ import CategoryMiniChart from '../charts/CategoryMiniChart';
 import { useApp } from '../context/AppContext';
 import { formatMonthYear } from '../utils/formatting';
 import { hasActiveFilters, getUniqueValues } from '../domain/filterEngine';
+import { calculateDimensionTotals } from '../domain/balanceCalculator';
+
+const CATEGORY_SORT_OPTIONS = [
+  { value: 'none', label: 'Standard' },
+  { value: 'income', label: 'Einnahmen' },
+  { value: 'expense', label: 'Ausgaben' },
+  { value: 'balance', label: 'Bilanz' },
+];
 
 export default function Dashboard() {
-  const { dateRange, transactions, filteredTransactions, filters, isLoading } = useApp();
+  const {
+    dateRange, transactions, filteredTransactions, filters, isLoading,
+    categorySort, hideEmptyCategories, dispatch,
+  } = useApp();
   const { startYear, startMonth, endYear, endMonth } = dateRange;
   const filtersActive = hasActiveFilters(filters);
 
+  const categoryTotals = useMemo(
+    () => calculateDimensionTotals(filteredTransactions, 'category', startYear, startMonth, endYear, endMonth),
+    [filteredTransactions, startYear, startMonth, endYear, endMonth]
+  );
+
+  const allCategories = useMemo(() => (
+    filters.categories.length > 0
+      ? filters.categories
+      : getUniqueValues(filteredTransactions, 'category')
+  ), [filters.categories, filteredTransactions]);
+
   const categoriesToShow = useMemo(() => {
-    if (filters.categories.length > 0) {
-      return filters.categories;
+    const totalsByLabel = new Map(categoryTotals.map((t) => [t.label, t]));
+
+    let result = allCategories;
+    if (hideEmptyCategories) {
+      result = result.filter((cat) => {
+        const total = totalsByLabel.get(cat);
+        return total && (total.income !== 0 || total.expense !== 0);
+      });
     }
-    return getUniqueValues(filteredTransactions, 'category');
-  }, [filters.categories, filteredTransactions]);
+
+    if (categorySort !== 'none') {
+      result = [...result].sort((a, b) => {
+        const totalA = totalsByLabel.get(a)?.[categorySort] ?? -Infinity;
+        const totalB = totalsByLabel.get(b)?.[categorySort] ?? -Infinity;
+        return totalB - totalA;
+      });
+    }
+
+    return result;
+  }, [allCategories, categoryTotals, hideEmptyCategories, categorySort]);
 
   if (isLoading) {
     return <div className="page-loading">Daten werden geladen...</div>;
@@ -72,19 +109,47 @@ export default function Dashboard() {
             <MonthSummaryTable />
           </section>
 
-          {categoriesToShow.length > 0 && (
+          {allCategories.length > 0 && (
             <section className="section">
-              <h2 className="section-title">Kategorien</h2>
-              <div className="category-mini-grid">
-                {categoriesToShow.map((cat) => (
-                  <CategoryMiniChart
-                    key={cat}
-                    category={cat}
-                    transactions={filteredTransactions}
-                    dateRange={dateRange}
-                  />
-                ))}
+              <div className="section-header">
+                <h2 className="section-title" style={{ marginBottom: 0 }}>Kategorien</h2>
+                <div className="section-actions">
+                  <div className="category-sort-control">
+                    <label className="form-label" style={{ marginBottom: 0 }}>
+                      Sortierung:
+                      <select
+                        className="form-input form-select"
+                        value={categorySort}
+                        onChange={(e) => dispatch({ type: 'SET_CATEGORY_SORT', payload: e.target.value })}
+                      >
+                        {CATEGORY_SORT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <button
+                    className={`btn btn-sm${hideEmptyCategories ? ' btn-primary' : ' btn-outline'}`}
+                    onClick={() => dispatch({ type: 'SET_HIDE_EMPTY_CATEGORIES', payload: !hideEmptyCategories })}
+                  >
+                    Leere Kategorien ausblenden
+                  </button>
+                </div>
               </div>
+              {categoriesToShow.length > 0 ? (
+                <div className="category-mini-grid">
+                  {categoriesToShow.map((cat) => (
+                    <CategoryMiniChart
+                      key={cat}
+                      category={cat}
+                      transactions={filteredTransactions}
+                      dateRange={dateRange}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted">Keine Kategorien mit Einnahmen oder Ausgaben im gewählten Zeitraum.</p>
+              )}
             </section>
           )}
         </main>

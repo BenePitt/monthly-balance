@@ -7,6 +7,14 @@ export interface Transaction {
   category: string;
   partner: string;
   recurrence: 'once' | 'monthly';
+  accountId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Account {
+  id: string;
+  name: string;
   createdAt: string;
   updatedAt: string;
 }

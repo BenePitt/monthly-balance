@@ -59,7 +59,7 @@ function getAppDataFilePath() {
   return path.join(app.getPath('userData'), 'data.json');
 }
 
-const DEFAULT_APP_DATA = { transactions: [], startBalance: 0, currentBalance: 0, balanceMode: 'start' };
+const DEFAULT_APP_DATA = { transactions: [], startBalance: 0, currentBalance: 0, balanceMode: 'start', accounts: [], selectedAccountId: null };
 
 // IPC: Load full app data (transactions + balance settings)
 ipcMain.handle('load-app-data', async () => {
