@@ -99,6 +99,16 @@ export function euroAxisFormatter(value) {
 }
 
 /**
+ * Formats an IBAN into 4-character groups for display.
+ * Example: "DE89370400440532013000" → "DE89 3704 0044 0532 0130 00"
+ */
+export function formatIban(iban) {
+  if (!iban) return '';
+  const cleaned = String(iban).replace(/\s+/g, '').toUpperCase();
+  return cleaned.match(/.{1,4}/g).join(' ');
+}
+
+/**
  * Calculates the number of textarea rows needed for a purpose string.
  */
 export function getPurposeRows(text) {

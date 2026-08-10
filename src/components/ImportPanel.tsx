@@ -2,10 +2,16 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useImportState } from '../hooks/useImportState';
 import { buildExportPayload } from '../domain/jsonExport';
+import { getLatestTransactionDate } from '../domain/transaction';
 import { AppLogger } from '../utils/AppLogger';
 import CsvPreviewTable from './CsvPreviewTable';
 import ImportDropzone from './ImportDropzone';
 import ConfirmDialog from './ConfirmDialog';
+import BankFetchModal from './BankFetchModal';
+
+const isElectron =
+  typeof window !== 'undefined' &&
+  !!(window as unknown as { electronAPI?: { isElectron?: boolean } }).electronAPI?.isElectron;
 
 interface ImportPanelProps {
   onNewTransaction: () => void;
@@ -19,10 +25,25 @@ export default function ImportPanel({ onNewTransaction }: ImportPanelProps) {
     lineChartBalanceMode,
     lineChartStartBalance,
     lineChartCurrentBalance,
+    accounts,
+    selectedAccountId,
+    dispatch,
   } = useApp();
+
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
+  const hasIban = !!selectedAccount?.iban;
+  const latestAccountTransactionDate = selectedAccount
+    ? getLatestTransactionDate(transactions, selectedAccount.id)
+    : null;
+
+  function handleComdirectBalanceUpdated(balanceEUR: number) {
+    dispatch({ type: 'SET_LINE_CHART_CURRENT_BALANCE', payload: balanceEUR });
+    dispatch({ type: 'SET_LINE_CHART_BALANCE_MODE', payload: 'current' });
+  }
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
+  const [showBankFetchModal, setShowBankFetchModal] = useState(false);
 
   const {
     source,
@@ -55,6 +76,7 @@ export default function ImportPanel({ onNewTransaction }: ImportPanelProps) {
     handleFile,
     handleFileChange,
     handleTextInput,
+    handleComdirectImport,
     updateDraft,
     toggleSelected,
     toggleAllSelected,
@@ -116,9 +138,40 @@ export default function ImportPanel({ onNewTransaction }: ImportPanelProps) {
             >
               JSON exportieren
             </button>
+            {isElectron && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setShowBankFetchModal(true)}
+                disabled={!hasIban}
+                title={
+                  hasIban
+                    ? undefined
+                    : `Für „${selectedAccount?.name}“ ist keine IBAN hinterlegt. Bitte unter „Konten“ eintragen.`
+                }
+              >
+                Von Comdirect abrufen
+              </button>
+            )}
+            {isElectron && !hasIban && (
+              <p className="text-muted" style={{ fontSize: '0.78rem' }}>
+                Für den Comdirect-Abruf muss dem aktuell ausgewählten Konto „{selectedAccount?.name}
+                “ zuerst unter „Konten“ eine IBAN hinterlegt werden.
+              </p>
+            )}
           </div>
           <ImportDropzone onFile={handleFile} />
         </div>
+      )}
+
+      {showBankFetchModal && selectedAccount && (
+        <BankFetchModal
+          account={selectedAccount}
+          defaultStartDate={latestAccountTransactionDate || undefined}
+          onClose={() => setShowBankFetchModal(false)}
+          onImported={handleComdirectImport}
+          onBalanceUpdated={handleComdirectBalanceUpdated}
+        />
       )}
 
       {showTextInput && drafts.length === 0 && (

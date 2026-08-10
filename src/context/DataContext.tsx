@@ -25,6 +25,7 @@ import {
   createDefaultAccount,
   createAccount,
   renameAccount as renameAccountDomain,
+  updateAccountIban as updateAccountIbanDomain,
   canDeleteAccount,
 } from '../domain/account';
 import type { UIContextValue } from './UIContext';
@@ -57,6 +58,7 @@ export interface DataContextValue {
   }) => Promise<void>;
   addAccount: (name: string) => Promise<Account>;
   renameAccount: (id: string, name: string) => Promise<void>;
+  updateAccountIban: (id: string, iban: string) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
   setSelectedAccount: (id: string) => void;
 }
@@ -407,6 +409,17 @@ export function useAppState(): { dataValue: DataContextValue; uiValue: UIContext
     [state.accounts, state.transactions, saveAppData]
   );
 
+  const updateAccountIban = useCallback(
+    async (id, iban) => {
+      const updatedAccounts = state.accounts.map((a) =>
+        a.id === id ? updateAccountIbanDomain(a, iban) : a
+      );
+      dispatch({ type: 'SET_ACCOUNTS', payload: updatedAccounts });
+      await saveAppData(state.transactions, updatedAccounts);
+    },
+    [state.accounts, state.transactions, saveAppData]
+  );
+
   const deleteAccount = useCallback(
     async (id) => {
       if (!canDeleteAccount(id, state.transactions)) {
@@ -466,6 +479,7 @@ export function useAppState(): { dataValue: DataContextValue; uiValue: UIContext
       importAllData,
       addAccount,
       renameAccount,
+      updateAccountIban,
       deleteAccount,
       setSelectedAccount,
     }),
@@ -491,6 +505,7 @@ export function useAppState(): { dataValue: DataContextValue; uiValue: UIContext
       importAllData,
       addAccount,
       renameAccount,
+      updateAccountIban,
       deleteAccount,
       setSelectedAccount,
     ]

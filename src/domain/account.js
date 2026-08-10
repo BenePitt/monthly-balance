@@ -10,7 +10,13 @@ export const DEFAULT_ACCOUNT_NAME = 'Standardkonto';
  */
 export function createDefaultAccount() {
   const now = new Date().toISOString();
-  return { id: DEFAULT_ACCOUNT_ID, name: DEFAULT_ACCOUNT_NAME, createdAt: now, updatedAt: now };
+  return {
+    id: DEFAULT_ACCOUNT_ID,
+    name: DEFAULT_ACCOUNT_NAME,
+    iban: '',
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 /**
@@ -18,7 +24,7 @@ export function createDefaultAccount() {
  */
 export function createAccount(name) {
   const now = new Date().toISOString();
-  const account = { id: uuidv4(), name: name.trim(), createdAt: now, updatedAt: now };
+  const account = { id: uuidv4(), name: name.trim(), iban: '', createdAt: now, updatedAt: now };
   AppLogger.log('KONTO ANGELEGT', { id: account.id, name: account.name });
   return account;
 }
@@ -29,6 +35,24 @@ export function createAccount(name) {
 export function renameAccount(account, name) {
   AppLogger.log('KONTO UMBENANNT', { id: account.id, from: account.name, to: name.trim() });
   return { ...account, name: name.trim(), updatedAt: new Date().toISOString() };
+}
+
+/**
+ * Strips whitespace and uppercases an IBAN for consistent storage/comparison.
+ */
+export function normalizeIban(iban) {
+  return String(iban || '')
+    .replace(/\s+/g, '')
+    .toUpperCase();
+}
+
+/**
+ * Returns a new account with an updated, normalized IBAN and updatedAt timestamp.
+ */
+export function updateAccountIban(account, iban) {
+  const normalized = normalizeIban(iban);
+  AppLogger.log('KONTO IBAN AKTUALISIERT', { id: account.id, iban: normalized });
+  return { ...account, iban: normalized, updatedAt: new Date().toISOString() };
 }
 
 /**

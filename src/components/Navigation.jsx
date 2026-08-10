@@ -1,8 +1,11 @@
 import { useApp } from '../context/AppContext';
+import { formatIban } from '../utils/formatting';
 
 export default function Navigation({ activePage, onNavigate }) {
   const { isElectron, saveStatus, manualSave, accounts, selectedAccountId, setSelectedAccount } =
     useApp();
+
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -57,6 +60,12 @@ export default function Navigation({ activePage, onNavigate }) {
           </button>
         )}
       </div>
+      {selectedAccount?.iban && (
+        <div className="nav-iban" title={`IBAN von „${selectedAccount.name}“`}>
+          <span className="nav-iban-label">IBAN</span>
+          <span className="nav-iban-value">{formatIban(selectedAccount.iban)}</span>
+        </div>
+      )}
     </nav>
   );
 }

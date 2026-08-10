@@ -197,6 +197,31 @@ textarea {
   margin-left: 8px;
 }
 
+.nav-iban {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.nav-iban-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.nav-iban-value {
+  font-size: 0.82rem;
+  font-family: monospace;
+  color: var(--color-text);
+}
+
 /* =========================================================
    Pages
    ========================================================= */
@@ -756,6 +781,81 @@ textarea {
 .import-message--warning {
   background: #fffbeb;
   color: #92400e;
+}
+
+/* =========================================================
+   Bank Fetch Modal
+   ========================================================= */
+.bank-fetch-modal {
+  width: min(100%, 34rem);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+}
+
+.bank-fetch-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.bank-fetch-modal-header h2 {
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.bank-fetch-close-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.bank-fetch-close-button:hover {
+  background: var(--color-bg);
+}
+
+.bank-fetch-modal-body {
+  padding: 1.25rem;
+}
+
+.bank-fetch-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin: 1.25rem 0 0.6rem;
+}
+
+.bank-fetch-section-title:first-of-type {
+  margin-top: 0;
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-top: 0.2rem;
 }
 
 .import-bulk-actions {

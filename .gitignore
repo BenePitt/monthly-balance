@@ -10,3 +10,4 @@ dist-electron/
 .DS_Store
 Thumbs.db
 data/
+bank-config.json

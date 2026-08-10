@@ -15,6 +15,7 @@ export interface Transaction {
 export interface Account {
   id: string;
   name: string;
+  iban: string;
   createdAt: string;
   updatedAt: string;
 }

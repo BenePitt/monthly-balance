@@ -65,6 +65,16 @@ export function updateTransaction(transaction, changes) {
   };
 }
 
+/**
+ * Returns the latest (most recent) date among the given account's transactions,
+ * or null if the account has no transactions.
+ */
+export function getLatestTransactionDate(transactions, accountId) {
+  const dates = transactions.filter((t) => t.accountId === accountId).map((t) => t.date);
+  if (dates.length === 0) return null;
+  return dates.reduce((latest, date) => (date > latest ? date : latest));
+}
+
 export const TRANSACTION_TYPES = {
   INCOME: 'income',
   EXPENSE: 'expense',

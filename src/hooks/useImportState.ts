@@ -8,11 +8,12 @@ import {
   sanitizeBalanceSettings,
   applyImportMode,
 } from '../domain/jsonExport';
-import { jsonToImportDraft } from '../domain/jsonToImportDraft';
+import { jsonToImportDraft, RawImportTransaction } from '../domain/jsonToImportDraft';
+import { applyCategoryInference } from '../domain/comdirectImport';
 import { AppLogger } from '../utils/AppLogger';
 import { Transaction, ImportDraft } from '../types';
 
-type ImportSource = 'csv' | 'json' | null;
+type ImportSource = 'csv' | 'json' | 'comdirect' | null;
 type BalanceSettings = {
   startBalance: number;
   currentBalance: number;
@@ -257,6 +258,30 @@ export function useImportState(existingTransactions: Transaction[], onImportDone
     processText(text, null);
   }
 
+  function handleComdirectImport(transactions: RawImportTransaction[]) {
+    resetPendingState();
+    setFileName('');
+    setSource('comdirect');
+
+    if (transactions.length === 0) {
+      setError('Keine Umsätze im gewählten Zeitraum gefunden.');
+      setDrafts([]);
+      return;
+    }
+
+    const categorized = applyCategoryInference(transactions, existingTransactions);
+    const { drafts: nextDrafts, originalById } = jsonToImportDraft(
+      categorized,
+      existingTransactions
+    );
+    originalByIdRef.current = originalById;
+
+    setDrafts(nextDrafts);
+    setSelectedIds(nextDrafts.filter((d) => !d.isDuplicate).map((d) => d.importId));
+    setBulkCategory('');
+    setBulkPartner('');
+  }
+
   function updateDraft(importId: string, changes: Partial<ImportDraft>) {
     setDrafts((prev) => prev.map((d) => (d.importId === importId ? { ...d, ...changes } : d)));
   }
@@ -395,6 +420,7 @@ export function useImportState(existingTransactions: Transaction[], onImportDone
     handleFile,
     handleFileChange,
     handleTextInput,
+    handleComdirectImport,
     updateDraft,
     toggleSelected,
     toggleAllSelected,

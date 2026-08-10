@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   createTransaction,
   updateTransaction,
+  getLatestTransactionDate,
   TRANSACTION_TYPES,
   RECURRENCE_TYPES,
   TYPE_LABELS,
@@ -76,6 +77,26 @@ describe('updateTransaction', () => {
 
     const updatedAmount = updateTransaction(tx, { amount: '99.9' });
     expect(updatedAmount.amount).toBe(99.9);
+  });
+});
+
+describe('getLatestTransactionDate', () => {
+  it('liefert das späteste Datum unter den Transaktionen des Kontos', () => {
+    const transactions = [
+      { date: '2026-01-10', accountId: 'a' },
+      { date: '2026-03-05', accountId: 'a' },
+      { date: '2026-12-31', accountId: 'b' },
+    ];
+    expect(getLatestTransactionDate(transactions, 'a')).toBe('2026-03-05');
+  });
+
+  it('gibt null zurück, wenn das Konto keine Transaktionen hat', () => {
+    const transactions = [{ date: '2026-01-10', accountId: 'a' }];
+    expect(getLatestTransactionDate(transactions, 'b')).toBeNull();
+  });
+
+  it('gibt null zurück für eine leere Transaktionsliste', () => {
+    expect(getLatestTransactionDate([], 'a')).toBeNull();
   });
 });
 

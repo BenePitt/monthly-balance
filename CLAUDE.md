@@ -8,7 +8,7 @@ Projektkontext für Claude Code in diesem Repository. Enthält nur Regeln, die a
 - **Web**: statisch, Daten nur im Arbeitsspeicher (keine Persistenz zwischen Sessions).
 - **Desktop**: Electron-App, persistiert nach `%APPDATA%\monthly-balance\transactions.json` über Electron-IPC.
 
-Kein Backend, keine Netzwerk-Requests (kein `fetch`/`axios`). Alle Daten sind lokal.
+Kein Backend, keine Netzwerk-Requests (kein `fetch`/`axios`) — **mit einer Ausnahme**: der Comdirect-Kontoabruf (`electron/comdirectClient.js`), siehe unten. Alle Daten sind ansonsten lokal.
 
 **Stack**: React 18 (function components, Hooks, Context API), Vite 8, Recharts, `uuid`. Kein State-Management-Framework (kein Redux/Zustand). Kein CSS-Framework (eine globale `src/index.css`, BEM-artige Klassennamen). Electron 28 + electron-builder für Desktop-Build.
 
@@ -28,6 +28,27 @@ utils/ (AppLogger, formatting, demoData)
 - `components/`, `pages/`, `charts/` rufen **niemals** `TransactionService` oder Storage-Adapter direkt auf — nur über Context-Hooks.
 - Persistenz läuft ausschließlich über den Adapter aus `storageFactory.js` (`DesktopStorageAdapter` vs. `WebMemoryStorageAdapter`, Auswahl über `window.electronAPI?.isElectron`). Kein direkter `localStorage`/IndexedDB-Zugriff irgendwo im Code.
 - `AppContext.jsx` ist aktuell ein Kompatibilitäts-Wrapper um die neueren, typisierten `DataContext` + `UIContext` (Context-Split-Migration im Gange). Neue Komponenten sollten bevorzugt `useDataContext()`/`useUIContext()` statt des generischen `useApp()` verwenden, wenn nur Daten- bzw. UI-State benötigt wird.
+
+### Ausnahme: Comdirect-Kontoabruf (Netzwerk, nur Desktop)
+
+Im Abschnitt „Daten hinzufügen“ gibt es (nur in der Electron/Desktop-Variante, Button per `window.electronAPI?.isElectron` ausgeblendet) einen Button, um Umsätze für einen Zeitraum direkt von der Comdirect abzurufen:
+
+```
+components/BankFetchModal.tsx (Formular: API Client-ID/Secret, Zugangsnummer/PIN, Zeitraum)
+  → hooks/useBankFetch.ts (State Machine, hält Zugangsdaten nur im Renderer-Speicher)
+    → window.electronAPI.comdirectFetchTransactions(...) (IPC, preload.js)
+      → electron/comdirectClient.js (Electron-Main-Process, natives Node-`fetch`, OAuth2 + TAN-Flow)
+  → domain/comdirectImport.ts (reine Mapping-Funktion comdirect-JSON → RawImportTransaction, keine I/O)
+  → bestehende Import-Pipeline: jsonToImportDraft.ts → Vorschau/Bulk-Edit in ImportPanel.tsx → handleImport → TransactionService.addMany
+```
+
+Jedes Konto (`domain/account.js`, `Account`-Typ) hat ein optionales `iban`-Feld, gepflegt auf der Seite `Konten` (`updateAccountIban` in `DataContext`). Die IBAN des aktuell ausgewählten Kontos wird oben rechts in der Navigation (`Navigation.jsx`, `.nav-iban`) angezeigt. Der Comdirect-Abruf ist erst möglich, wenn dem ausgewählten Konto eine IBAN hinterlegt ist (Gate in `ImportPanel.tsx`) — sie dient zugleich dazu, in `electron/comdirectClient.js` das passende comdirect-Konto (per IBAN-Abgleich) aus der Kontenliste auszuwählen.
+
+Regeln für diesen Bereich:
+- Netzwerk-Calls (`fetch`) sind **ausschließlich** in `electron/comdirectClient.js` (Main-Process) erlaubt — nirgendwo im Renderer/`src/`.
+- Zugangsnummer, PIN und TAN werden **nie** persistiert, nur für die Dauer eines Abrufs im Hook-State gehalten. Nur die comdirect-API-Client-ID/-Secret dürfen optional lokal gespeichert werden (`electron/main.js`, `bank-config.json` im `userData`-Verzeichnis, per `comdirect-load-config`/`comdirect-save-config`-IPC).
+- `domain/comdirectImport.ts` bleibt eine reine Funktion (kein Netzwerk-Import), analog zu den übrigen `domain/`-Modulen.
+- Diese Ausnahme gilt nur für die Comdirect-Integration; alle anderen Teile der App bleiben netzwerkfrei.
 
 ## Entwicklungsworkflow
 
@@ -77,7 +98,7 @@ Hinweis: Die GitHub-Actions-Pipeline (`.github/workflows/deploy.yml`) führt nur
 - Persistenz ausschließlich über den bestehenden Storage-Adapter (`storageFactory.js`), niemals direktes `localStorage`/IndexedDB.
 - Sprachtrennung beibehalten: englische Code-Identifier, deutsche UI-Texte/Logger-Events.
 - Bestehendes Logging-Muster (`AppLogger`) statt `console.log` verwenden.
-- Keine neuen Abhängigkeiten (State-Management, CSS-Framework, HTTP-Client, Testing-Library) ohne triftigen Grund hinzufügen — das Projekt ist bewusst minimal gehalten.
+- Keine neuen Abhängigkeiten (State-Management, CSS-Framework, HTTP-Client, Testing-Library) ohne triftigen Grund hinzufügen — das Projekt ist bewusst minimal gehalten. Neue Netzwerk-Calls außerhalb von `electron/comdirectClient.js` sind nicht erlaubt.
 - `npm run lint` muss fehlerfrei durchlaufen; `npm run format` vor dem Commit anwenden.
 - `npm test` muss grün sein; neue Domain-/Storage-Logik durch Vitest-Tests abdecken.
 - TS-Typen in berührten `.ts`/`.tsx`-Dateien konsistent halten, auch ohne automatisierten Typecheck (keiner läuft in CI oder lokal).
@@ -96,6 +117,9 @@ Hinweis: Die GitHub-Actions-Pipeline (`.github/workflows/deploy.yml`) führt nur
 - `src/storage/storageFactory.js` — wählt den Storage-Adapter (Web vs. Desktop).
 - `src/utils/AppLogger.js` — zentrales Event-Logging.
 - `src/types/index.ts` — gemeinsame TS-Typdefinitionen.
+- `electron/comdirectClient.js` — einzige Stelle im Projekt mit Netzwerk-Requests (`fetch`); OAuth2+TAN-Flow für den Comdirect-Kontoabruf.
+- `src/domain/comdirectImport.ts` — reine Mapping-Funktion comdirect-Umsatz-JSON → `RawImportTransaction`.
+- `src/hooks/useBankFetch.ts` / `src/components/BankFetchModal.tsx` — UI/State für den Comdirect-Abruf-Dialog.
 - `build-all.bat` — Windows-Skript für Desktop-Distribution (NSIS, portable, unpacked).
 - `.github/workflows/deploy.yml` — GitHub-Pages-Deployment (nur Build, kein Test/Lint-Gate).
 - `docs/fachliche-anforderung-monatliche-bilanz.md` — fachliche Anforderungen (deutsch).

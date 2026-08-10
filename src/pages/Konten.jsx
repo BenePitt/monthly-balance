@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { DEFAULT_ACCOUNT_ID } from '../domain/account';
+import { formatIban } from '../utils/formatting';
 
 export default function Konten() {
-  const { accounts, addAccount, renameAccount, deleteAccount } = useApp();
+  const { accounts, addAccount, renameAccount, updateAccountIban, deleteAccount } = useApp();
   const [newAccountName, setNewAccountName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [editingIbanId, setEditingIbanId] = useState(null);
+  const [editingIbanValue, setEditingIbanValue] = useState('');
   const [error, setError] = useState('');
 
   async function handleAdd(e) {
@@ -29,6 +32,19 @@ export default function Konten() {
     await renameAccount(editingId, editingName);
     setEditingId(null);
     setEditingName('');
+  }
+
+  function startEditingIban(account) {
+    setEditingIbanId(account.id);
+    setEditingIbanValue(account.iban || '');
+    setError('');
+  }
+
+  async function handleSaveIban(e) {
+    e.preventDefault();
+    await updateAccountIban(editingIbanId, editingIbanValue);
+    setEditingIbanId(null);
+    setEditingIbanValue('');
   }
 
   async function handleDelete(id) {
@@ -92,56 +108,118 @@ export default function Konten() {
             }}
           >
             {accounts.map((account) => (
-              <li key={account.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {editingId === account.id ? (
-                  <form onSubmit={handleRename} style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      autoFocus
-                    />
-                    <button type="submit" className="btn btn-sm btn-primary">
-                      Speichern
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline"
-                      onClick={() => setEditingId(null)}
+              <li
+                key={account.id}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                  paddingBottom: '0.5rem',
+                  borderBottom: '1px solid var(--color-border)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {editingId === account.id ? (
+                    <form
+                      onSubmit={handleRename}
+                      style={{ display: 'flex', gap: '0.5rem', flex: 1 }}
                     >
-                      Abbrechen
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    <span style={{ flex: 1 }}>
-                      {account.name}
-                      {account.id === DEFAULT_ACCOUNT_ID && (
-                        <span
-                          className="text-muted"
-                          style={{ fontSize: '0.78rem', marginLeft: '0.5rem' }}
-                        >
-                          (Standardkonto)
-                        </span>
-                      )}
-                    </span>
-                    <button
-                      className="btn btn-sm btn-outline"
-                      onClick={() => startEditing(account)}
-                    >
-                      Umbenennen
-                    </button>
-                    {account.id !== DEFAULT_ACCOUNT_ID && (
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        autoFocus
+                      />
+                      <button type="submit" className="btn btn-sm btn-primary">
+                        Speichern
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => setEditingId(null)}
+                      >
+                        Abbrechen
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <span style={{ flex: 1 }}>
+                        {account.name}
+                        {account.id === DEFAULT_ACCOUNT_ID && (
+                          <span
+                            className="text-muted"
+                            style={{ fontSize: '0.78rem', marginLeft: '0.5rem' }}
+                          >
+                            (Standardkonto)
+                          </span>
+                        )}
+                      </span>
                       <button
                         className="btn btn-sm btn-outline"
-                        onClick={() => handleDelete(account.id)}
+                        onClick={() => startEditing(account)}
                       >
-                        Löschen
+                        Umbenennen
                       </button>
-                    )}
-                  </>
-                )}
+                      {account.id !== DEFAULT_ACCOUNT_ID && (
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleDelete(account.id)}
+                        >
+                          Löschen
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {editingIbanId === account.id ? (
+                    <form
+                      onSubmit={handleSaveIban}
+                      style={{ display: 'flex', gap: '0.5rem', flex: 1, alignItems: 'center' }}
+                    >
+                      <label className="form-label" style={{ flex: 1, marginBottom: 0 }}>
+                        IBAN
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="z. B. DE89 3704 0044 0532 0130 00"
+                          value={editingIbanValue}
+                          onChange={(e) => setEditingIbanValue(e.target.value)}
+                          autoFocus
+                        />
+                      </label>
+                      <button type="submit" className="btn btn-sm btn-primary">
+                        Speichern
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline"
+                        onClick={() => setEditingIbanId(null)}
+                      >
+                        Abbrechen
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <span
+                        className="text-muted"
+                        style={{ flex: 1, fontSize: '0.85rem', fontFamily: 'monospace' }}
+                      >
+                        {account.iban
+                          ? formatIban(account.iban)
+                          : 'IBAN nicht hinterlegt (erforderlich für Comdirect-Abruf)'}
+                      </span>
+                      <button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => startEditingIban(account)}
+                      >
+                        {account.iban ? 'IBAN bearbeiten' : 'IBAN hinzufügen'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

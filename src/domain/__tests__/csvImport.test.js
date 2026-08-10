@@ -170,6 +170,41 @@ describe('inferImportMetadata', () => {
     expect(result.categorySource).toBe('kategorie-im-text');
   });
 
+  it('erkennt eine Kategorie nur als eigenes Wort, nicht als Teil eines laengeren Wortes', () => {
+    const existing = [
+      tx({ partner: 'Irgendwer', category: 'Auto', purpose: 'Buchungstext: Sonstiges' }),
+    ];
+    const result = inferImportMetadata({
+      bookingText: 'Buchungstext: Autoversicherung Jahresbeitrag Ref. 1',
+      type: 'expense',
+      amount: 30,
+      existingTransactions: existing,
+    });
+
+    expect(result.category).not.toBe('Auto');
+    expect(result.categorySource).not.toBe('kategorie-im-text');
+  });
+
+  it('bevorzugt bei mehreren im Text vorkommenden Kategorien die laengste', () => {
+    const existing = [
+      tx({ partner: 'Irgendwer1', category: 'Bahn', purpose: 'Buchungstext: Sonstiges A' }),
+      tx({
+        partner: 'Irgendwer2',
+        category: 'Deutsche Bahn',
+        purpose: 'Buchungstext: Sonstiges B',
+      }),
+    ];
+    const result = inferImportMetadata({
+      bookingText: 'Buchungstext: Fahrkarte Deutsche Bahn Ref. 1',
+      type: 'expense',
+      amount: 30,
+      existingTransactions: existing,
+    });
+
+    expect(result.category).toBe('Deutsche Bahn');
+    expect(result.categorySource).toBe('kategorie-im-text');
+  });
+
   it('uebernimmt die Kategorie der aehnlichsten Buchung global, wenn Aehnlichkeit >= 70%', () => {
     const existing = [
       tx({
@@ -281,7 +316,7 @@ describe('parseBankCsv', () => {
     });
   });
 
-  it('extrahiert den Partner aus "Auftraggeber:"/"Buchungstext:"', () => {
+  it('extrahiert den Partner aus "Auftraggeber:"/"Buchungstext:" und kuerzt den Verwendungszweck auf den Text nach "Buchungstext:"', () => {
     const csv = [
       '"Buchungstag";"Wertstellung (Valuta)";"Vorgang";"Buchungstext";"Umsatz in EUR"',
       '"28.05.2026";"28.05.2026";"Ueberweisung";"Auftraggeber: Mustermann GmbH Buchungstext: Einkauf Ref. 1";"-42,10"',
@@ -290,6 +325,21 @@ describe('parseBankCsv', () => {
     const result = parseBankCsv(csv);
 
     expect(result.transactions[0].partner).toBe('Mustermann GmbH');
+    expect(result.transactions[0].purpose).toBe('Einkauf Ref. 1');
+  });
+
+  it('extrahiert Partner und Verwendungszweck fuer "Empfaenger: ...Kto/IBAN: ... BLZ/BIC: ... Buchungstext: ..."', () => {
+    const csv = [
+      '"Buchungstag";"Wertstellung (Valuta)";"Vorgang";"Buchungstext";"Umsatz in EUR"',
+      '"28.05.2026";"28.05.2026";"Ueberweisung";' +
+        '"Empfänger: Markus MustermannKto/IBAN: DE712345678600 BLZ/BIC: CSDFFSEDXXX  Buchungstext: Ionos Ref. AZ2C29C32WEVC6XC/22732";' +
+        '"-42,10"',
+    ].join('\n');
+
+    const result = parseBankCsv(csv);
+
+    expect(result.transactions[0].partner).toBe('Markus Mustermann');
+    expect(result.transactions[0].purpose).toBe('Ionos Ref. AZ2C29C32WEVC6XC/22732');
   });
 
   it('markiert eine bereits vorhandene Transaktion als Duplikat', () => {

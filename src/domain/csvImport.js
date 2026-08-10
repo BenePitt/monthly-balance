@@ -98,6 +98,20 @@ function matchesKeyword(text, keyword) {
   return text.includes(normalizeText(keyword));
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Checks whether `category` occurs in `normalizedText` as its own word — no
+// letters directly before or after the match (digits/punctuation/spaces are
+// fine as neighbors, so e.g. "Auto" still matches in "Auto2026").
+function containsCategoryAsWord(normalizedText, category) {
+  const normalizedCategory = normalizeText(category);
+  if (!normalizedCategory) return false;
+  const pattern = new RegExp(`(?<![a-z])${escapeRegExp(normalizedCategory)}(?![a-z])`);
+  return pattern.test(normalizedText);
+}
+
 // Parses the structured booking text format used by comdirect and similar banks:
 // "Auftraggeber: NAME Buchungstext: CONTENT Ref. ..."
 // "Empfänger: NAME Kto/IBAN: ... Buchungstext: CONTENT Ref. ..."
@@ -111,11 +125,18 @@ function extractBookingParts(rawText) {
   );
   const counterparty = cpMatch ? cpMatch[1].trim() : '';
 
-  // Booking content: after "Buchungstext:" — stop before "Ref."
+  // Booking content: after "Buchungstext:" — stop before "Ref." (used for
+  // partner/category matching, where the reference number is just noise).
   const bcMatch = text.match(/Buchungstext\s*:\s*(.+?)(?=\s*Ref\.|$)/i);
   const bookingContent = bcMatch ? bcMatch[1].trim() : '';
 
-  return { counterparty, bookingContent };
+  // Full booking text: everything after "Buchungstext:" through the end of
+  // the string, including the reference number — used as the cleaned
+  // `purpose` shown to the user, who does want to see the full text.
+  const fullBcMatch = text.match(/Buchungstext\s*:\s*(.+)$/i);
+  const fullBookingText = fullBcMatch ? fullBcMatch[1].trim() : '';
+
+  return { counterparty, bookingContent, fullBookingText };
 }
 
 const LEARNED_STOP_WORDS = new Set([
@@ -273,7 +294,7 @@ function findClosestByText(pool, text, { minSimilarity = 0 } = {}) {
 // same type+partner, 3) closest text match among same partner (any type), 4) a known
 // category name literally appearing in the text, 5) closest text match across all
 // history if at least 70% similar, 6) empty (caller applies the "Sonstiges" fallback).
-function inferCategory({ text, partner, type, amount }, existingTransactions) {
+export function inferCategory({ text, partner, type, amount }, existingTransactions) {
   if (existingTransactions.length === 0) {
     return { category: '', categorySource: 'keine-historie', matchedTransaction: null };
   }
@@ -315,7 +336,10 @@ function inferCategory({ text, partner, type, amount }, existingTransactions) {
 
   const knownCategories = getUniqueValues(existingTransactions, 'category');
   const normalizedText = normalizeText(text);
-  const substringMatch = knownCategories.find((cat) => normalizedText.includes(normalizeText(cat)));
+  const categoriesByLengthDesc = [...knownCategories].sort((a, b) => b.length - a.length);
+  const substringMatch = categoriesByLengthDesc.find((cat) =>
+    containsCategoryAsWord(normalizedText, cat)
+  );
   if (substringMatch) {
     return {
       category: substringMatch,
@@ -563,15 +587,15 @@ export function parseBankCsv(
   for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
     const row = rows[rowIndex];
     const rawDate = readCell(row, columnIndexes.date);
-    const purpose = readCell(row, columnIndexes.bookingText);
+    const rawPurpose = readCell(row, columnIndexes.bookingText);
     const rawAmount = readCell(row, columnIndexes.amount);
 
-    if (!rawDate && !purpose && !rawAmount) continue;
+    if (!rawDate && !rawPurpose && !rawAmount) continue;
 
     const date = parseBankDate(rawDate);
     const signedAmount = parseGermanAmount(rawAmount);
 
-    if (!date || signedAmount === null || signedAmount === 0 || !purpose) {
+    if (!date || signedAmount === null || signedAmount === 0 || !rawPurpose) {
       warnings.push(
         `Zeile ${rowIndex + 1} wurde uebersprungen, weil Datum, Buchungstext oder Betrag fehlen.`
       );
@@ -585,13 +609,17 @@ export function parseBankCsv(
     const type = signedAmount < 0 ? 'expense' : 'income';
     const amount = Math.abs(signedAmount);
     const inferred = inferImportMetadata({
-      bookingText: purpose,
+      bookingText: rawPurpose,
       type,
       amount,
       existingTransactions,
       learnedRules,
       debug,
     });
+    const { counterparty, bookingContent, fullBookingText } = extractBookingParts(rawPurpose);
+    // When the raw text has the structured "Buchungstext:"-format, show the
+    // reader only the text after that label; otherwise keep the raw value.
+    const purpose = fullBookingText || rawPurpose;
     const category = inferred.category || (fillUnknowns ? DEFAULT_IMPORT_CATEGORY : '');
     const partner = inferred.partner || (fillUnknowns ? DEFAULT_IMPORT_PARTNER : '');
     const isDuplicate = isDuplicateTransaction(
@@ -600,9 +628,8 @@ export function parseBankCsv(
     );
 
     if (debug) {
-      const { counterparty, bookingContent } = extractBookingParts(purpose);
       debugLog.push('');
-      debugLog.push(`Zeile ${rowIndex + 1} | "${purpose}"`);
+      debugLog.push(`Zeile ${rowIndex + 1} | "${rawPurpose}"`);
       if (counterparty) debugLog.push(`  Auftraggeber/Empfänger: "${counterparty}"`);
       if (bookingContent) debugLog.push(`  Buchungstext: "${bookingContent}"`);
       debugLog.push(`  Typ: ${type === 'income' ? 'Einnahme' : 'Ausgabe'}`);
