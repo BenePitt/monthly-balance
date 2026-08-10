@@ -43,7 +43,7 @@ export function useTransactionEdit(
   frozenOrder: string[] | null,
   setFrozenOrder: (order: string[] | null) => void,
   displayRows: Transaction[],
-  sorted: Transaction[],
+  sorted: Transaction[]
 ) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValues, setEditingValues] = useState<EditValues>(emptyEditValues());
@@ -61,20 +61,23 @@ export function useTransactionEdit(
     setEditingValues(emptyEditValues());
   }, [sorted, setFrozenOrder]);
 
-  const startEdit = useCallback((t: Transaction) => {
-    setFrozenOrder(displayRows.map((tx) => tx.id));
-    setEditingId(t.id);
-    setEditErrors({});
-    setEditingValues({
-      date: t.date,
-      type: t.type,
-      amount: String(t.amount),
-      purpose: t.purpose,
-      category: t.category,
-      partner: t.partner,
-      recurrence: t.recurrence,
-    });
-  }, [displayRows, setFrozenOrder]);
+  const startEdit = useCallback(
+    (t: Transaction) => {
+      setFrozenOrder(displayRows.map((tx) => tx.id));
+      setEditingId(t.id);
+      setEditErrors({});
+      setEditingValues({
+        date: t.date,
+        type: t.type,
+        amount: String(t.amount),
+        purpose: t.purpose,
+        category: t.category,
+        partner: t.partner,
+        recurrence: t.recurrence,
+      });
+    },
+    [displayRows, setFrozenOrder]
+  );
 
   const cancelEdit = useCallback(() => {
     if (editingId === NEW_ROW_ID) setFrozenOrder(null);
@@ -83,26 +86,35 @@ export function useTransactionEdit(
     setEditErrors({});
   }, [editingId, setFrozenOrder]);
 
-  const saveNewRow = useCallback(async (andAddAnother = false) => {
-    const errors = validateEditValues(editingValues);
-    if (Object.keys(errors).length > 0) { setEditErrors(errors); return; }
+  const saveNewRow = useCallback(
+    async (andAddAnother = false) => {
+      const errors = validateEditValues(editingValues);
+      if (Object.keys(errors).length > 0) {
+        setEditErrors(errors);
+        return;
+      }
 
-    const fields = { ...editingValues, amount: parseFloat(editingValues.amount) };
-    setEditingId(null);
-    setEditingValues(emptyEditValues());
-    setEditErrors({});
-    await onAdd(fields);
-
-    if (andAddAnother) {
-      setEditingId(NEW_ROW_ID);
-      setEditErrors({});
+      const fields = { ...editingValues, amount: parseFloat(editingValues.amount) };
+      setEditingId(null);
       setEditingValues(emptyEditValues());
-    }
-  }, [editingValues, onAdd]);
+      setEditErrors({});
+      await onAdd(fields);
+
+      if (andAddAnother) {
+        setEditingId(NEW_ROW_ID);
+        setEditErrors({});
+        setEditingValues(emptyEditValues());
+      }
+    },
+    [editingValues, onAdd]
+  );
 
   const saveEdit = useCallback(async () => {
     const errors = validateEditValues(editingValues);
-    if (Object.keys(errors).length > 0) { setEditErrors(errors); return; }
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
+      return;
+    }
 
     const id = editingId!;
     const changes = { ...editingValues, amount: parseFloat(editingValues.amount) };

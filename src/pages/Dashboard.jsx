@@ -19,22 +19,38 @@ const CATEGORY_SORT_OPTIONS = [
 
 export default function Dashboard() {
   const {
-    dateRange, transactions, filteredTransactions, filters, isLoading,
-    categorySort, hideEmptyCategories, dispatch,
+    dateRange,
+    transactions,
+    filteredTransactions,
+    filters,
+    isLoading,
+    categorySort,
+    hideEmptyCategories,
+    dispatch,
   } = useApp();
   const { startYear, startMonth, endYear, endMonth } = dateRange;
   const filtersActive = hasActiveFilters(filters);
 
   const categoryTotals = useMemo(
-    () => calculateDimensionTotals(filteredTransactions, 'category', startYear, startMonth, endYear, endMonth),
+    () =>
+      calculateDimensionTotals(
+        filteredTransactions,
+        'category',
+        startYear,
+        startMonth,
+        endYear,
+        endMonth
+      ),
     [filteredTransactions, startYear, startMonth, endYear, endMonth]
   );
 
-  const allCategories = useMemo(() => (
-    filters.categories.length > 0
-      ? filters.categories
-      : getUniqueValues(filteredTransactions, 'category')
-  ), [filters.categories, filteredTransactions]);
+  const allCategories = useMemo(
+    () =>
+      filters.categories.length > 0
+        ? filters.categories
+        : getUniqueValues(filteredTransactions, 'category'),
+    [filters.categories, filteredTransactions]
+  );
 
   const categoriesToShow = useMemo(() => {
     const totalsByLabel = new Map(categoryTotals.map((t) => [t.label, t]));
@@ -77,8 +93,8 @@ export default function Dashboard() {
 
       {transactions.length === 0 && (
         <div className="info-banner">
-          <strong>Willkommen!</strong> Es sind noch keine Transaktionen vorhanden.
-          Gehen Sie zu <em>Transaktionen</em>, um Einnahmen und Ausgaben zu erfassen.
+          <strong>Willkommen!</strong> Es sind noch keine Transaktionen vorhanden. Gehen Sie zu{' '}
+          <em>Transaktionen</em>, um Einnahmen und Ausgaben zu erfassen.
         </div>
       )}
 
@@ -112,7 +128,9 @@ export default function Dashboard() {
           {allCategories.length > 0 && (
             <section className="section">
               <div className="section-header">
-                <h2 className="section-title" style={{ marginBottom: 0 }}>Kategorien</h2>
+                <h2 className="section-title" style={{ marginBottom: 0 }}>
+                  Kategorien
+                </h2>
                 <div className="section-actions">
                   <div className="category-sort-control">
                     <label className="form-label" style={{ marginBottom: 0 }}>
@@ -120,17 +138,23 @@ export default function Dashboard() {
                       <select
                         className="form-input form-select"
                         value={categorySort}
-                        onChange={(e) => dispatch({ type: 'SET_CATEGORY_SORT', payload: e.target.value })}
+                        onChange={(e) =>
+                          dispatch({ type: 'SET_CATEGORY_SORT', payload: e.target.value })
+                        }
                       >
                         {CATEGORY_SORT_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
                         ))}
                       </select>
                     </label>
                   </div>
                   <button
                     className={`btn btn-sm${hideEmptyCategories ? ' btn-primary' : ' btn-outline'}`}
-                    onClick={() => dispatch({ type: 'SET_HIDE_EMPTY_CATEGORIES', payload: !hideEmptyCategories })}
+                    onClick={() =>
+                      dispatch({ type: 'SET_HIDE_EMPTY_CATEGORIES', payload: !hideEmptyCategories })
+                    }
                   >
                     Leere Kategorien ausblenden
                   </button>
@@ -148,7 +172,9 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted">Keine Kategorien mit Einnahmen oder Ausgaben im gewählten Zeitraum.</p>
+                <p className="text-muted">
+                  Keine Kategorien mit Einnahmen oder Ausgaben im gewählten Zeitraum.
+                </p>
               )}
             </section>
           )}

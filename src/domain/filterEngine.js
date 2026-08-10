@@ -58,9 +58,12 @@ export function applyColumnFilters(transactions, filters) {
     if (filters.date && !formatDate(t.date).includes(filters.date)) return false;
     if (filters.type && t.type !== filters.type) return false;
     if (filters.amount && !String(t.amount).includes(filters.amount)) return false;
-    if (filters.purpose && !t.purpose.toLowerCase().includes(filters.purpose.toLowerCase())) return false;
-    if (filters.category && !t.category.toLowerCase().includes(filters.category.toLowerCase())) return false;
-    if (filters.partner && !t.partner.toLowerCase().includes(filters.partner.toLowerCase())) return false;
+    if (filters.purpose && !t.purpose.toLowerCase().includes(filters.purpose.toLowerCase()))
+      return false;
+    if (filters.category && !t.category.toLowerCase().includes(filters.category.toLowerCase()))
+      return false;
+    if (filters.partner && !t.partner.toLowerCase().includes(filters.partner.toLowerCase()))
+      return false;
     if (filters.recurrence && t.recurrence !== filters.recurrence) return false;
     return true;
   });

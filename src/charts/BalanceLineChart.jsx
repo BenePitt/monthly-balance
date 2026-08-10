@@ -1,21 +1,12 @@
-import { useMemo, useRef } from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-} from 'recharts';
+import { useMemo } from 'react';
+import { LineChart, Line, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
 import {
   calculateDailyPeriodStats,
   calculateStartBalanceFromCurrentBalance,
 } from '../domain/balanceCalculator';
-import { formatCurrency, formatDate, euroAxisFormatter } from '../utils/formatting';
+import { formatCurrency, formatDate } from '../utils/formatting';
+import { renderChartAxes, useMonthDrillDown } from './chartShared';
 
 function formatAxisDate(isoDate) {
   const [, month, day] = isoDate.split('-');
@@ -36,13 +27,32 @@ export default function BalanceLineChart() {
   const effectiveStartBalance = useMemo(() => {
     if (lineChartBalanceMode !== 'current') return lineChartStartBalance;
     return calculateStartBalanceFromCurrentBalance(
-      filteredTransactions, startYear, startMonth, endYear, endMonth, lineChartCurrentBalance
+      filteredTransactions,
+      startYear,
+      startMonth,
+      endYear,
+      endMonth,
+      lineChartCurrentBalance
     );
-  }, [lineChartBalanceMode, lineChartStartBalance, filteredTransactions, startYear, startMonth, endYear, endMonth, lineChartCurrentBalance]);
+  }, [
+    lineChartBalanceMode,
+    lineChartStartBalance,
+    filteredTransactions,
+    startYear,
+    startMonth,
+    endYear,
+    endMonth,
+    lineChartCurrentBalance,
+  ]);
 
   const data = useMemo(() => {
     const stats = calculateDailyPeriodStats(
-      filteredTransactions, startYear, startMonth, endYear, endMonth, effectiveStartBalance
+      filteredTransactions,
+      startYear,
+      startMonth,
+      endYear,
+      endMonth,
+      effectiveStartBalance
     );
     return stats.days.map((day) => ({
       name: day.date,
@@ -52,21 +62,16 @@ export default function BalanceLineChart() {
     }));
   }, [filteredTransactions, startYear, startMonth, endYear, endMonth, effectiveStartBalance]);
 
-  const lastIndexRef = useRef(null);
-
-  function handleChartClick(chartData) {
-    if (chartData?.activeTooltipIndex !== undefined) lastIndexRef.current = chartData.activeTooltipIndex;
-  }
-
-  function handleDoubleClick() {
-    const idx = lastIndexRef.current;
-    if (idx != null && data[idx]) {
-      const [yearStr, monthStr] = data[idx].name.split('-');
+  const { handleChartClick, handleDoubleClick } = useMonthDrillDown(
+    data,
+    (day) => {
+      const [yearStr, monthStr] = day.name.split('-');
       const year = Number(yearStr);
       const month = Number(monthStr);
-      dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: year, startMonth: month, endYear: year, endMonth: month } });
-    }
-  }
+      return { startYear: year, startMonth: month, endYear: year, endMonth: month };
+    },
+    (range) => dispatch({ type: 'SET_DATE_RANGE', payload: range })
+  );
 
   const showDots = data.length <= 45;
 
@@ -76,49 +81,50 @@ export default function BalanceLineChart() {
 
   return (
     <div onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
-    <ResponsiveContainer width="100%" height={320}>
-      <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis
-          dataKey="name"
-          tickFormatter={formatAxisDate}
-          tick={{ fontSize: 12 }}
-          minTickGap={24}
-        />
-        <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
-        <Tooltip
-          labelFormatter={(value) => formatDate(value)}
-          formatter={(value, name) => [formatCurrency(value), name]}
-          contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
-        />
-        <Legend />
-        <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 4" />
-        <Line
-          type="linear"
-          dataKey="Einnahmen"
-          stroke="#22c55e"
-          strokeWidth={2.5}
-          dot={showDots ? { r: 3 } : false}
-          activeDot={{ r: 6 }}
-        />
-        <Line
-          type="linear"
-          dataKey="Ausgaben"
-          stroke="#ef4444"
-          strokeWidth={2.5}
-          dot={showDots ? { r: 3 } : false}
-          activeDot={{ r: 6 }}
-        />
-        <Line
-          type="linear"
-          dataKey="Bilanz"
-          stroke="#3b82f6"
-          strokeWidth={3}
-          dot={showDots ? { r: 3.5 } : false}
-          activeDot={{ r: 7 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+      <ResponsiveContainer width="100%" height={320}>
+        <LineChart
+          data={data}
+          margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+          onClick={handleChartClick}
+        >
+          {renderChartAxes({
+            xDataKey: 'name',
+            xTickFormatter: formatAxisDate,
+            xProps: { minTickGap: 24 },
+            refLineDasharray: '4 4',
+          })}
+          <Tooltip
+            labelFormatter={(value) => formatDate(value)}
+            formatter={(value, name) => [formatCurrency(value), name]}
+            contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
+          />
+          <Legend />
+          <Line
+            type="linear"
+            dataKey="Einnahmen"
+            stroke="#22c55e"
+            strokeWidth={2.5}
+            dot={showDots ? { r: 3 } : false}
+            activeDot={{ r: 6 }}
+          />
+          <Line
+            type="linear"
+            dataKey="Ausgaben"
+            stroke="#ef4444"
+            strokeWidth={2.5}
+            dot={showDots ? { r: 3 } : false}
+            activeDot={{ r: 6 }}
+          />
+          <Line
+            type="linear"
+            dataKey="Bilanz"
+            stroke="#3b82f6"
+            strokeWidth={3}
+            dot={showDots ? { r: 3.5 } : false}
+            activeDot={{ r: 7 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }

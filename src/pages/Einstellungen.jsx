@@ -37,7 +37,9 @@ export default function Einstellungen() {
       <section className="section">
         <div className="card">
           <h2 className="section-title">Diagnose &amp; Debug</h2>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer' }}>
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer' }}
+          >
             <input type="checkbox" checked={debugMode} onChange={handleDebugToggle} />
             <span>Debug-Modus aktivieren</span>
           </label>

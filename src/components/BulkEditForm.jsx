@@ -30,12 +30,12 @@ export default function BulkEditForm({ selectedIds, onDone }) {
 
   function buildChanges() {
     const changes = {};
-    if (form.type)      changes.type = form.type;
+    if (form.type) changes.type = form.type;
     if (form.recurrence) changes.recurrence = form.recurrence;
-    if (form.date)      changes.date = form.date;
-    if (form.purpose.trim())  changes.purpose = form.purpose.trim();
+    if (form.date) changes.date = form.date;
+    if (form.purpose.trim()) changes.purpose = form.purpose.trim();
     if (form.category.trim()) changes.category = form.category.trim();
-    if (form.partner.trim())  changes.partner = form.partner.trim();
+    if (form.partner.trim()) changes.partner = form.partner.trim();
     const amt = parseFloat(form.amount);
     if (!isNaN(amt) && amt > 0) changes.amount = amt;
     return changes;
@@ -148,7 +148,9 @@ export default function BulkEditForm({ selectedIds, onDone }) {
             onChange={(e) => handleChange('category', e.target.value)}
           />
           <datalist id="bulk-categories-list">
-            {suggestedCategories.map((c) => <option key={c} value={c} />)}
+            {suggestedCategories.map((c) => (
+              <option key={c} value={c} />
+            ))}
           </datalist>
         </label>
 
@@ -164,7 +166,9 @@ export default function BulkEditForm({ selectedIds, onDone }) {
             onChange={(e) => handleChange('partner', e.target.value)}
           />
           <datalist id="bulk-partners-list">
-            {suggestedPartners.map((p) => <option key={p} value={p} />)}
+            {suggestedPartners.map((p) => (
+              <option key={p} value={p} />
+            ))}
           </datalist>
         </label>
       </div>

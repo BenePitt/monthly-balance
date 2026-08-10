@@ -24,14 +24,18 @@ export default function ChartContainer({ showGroupingOptions = false }) {
     dispatch,
   } = useApp();
   const { startYear, startMonth, endYear, endMonth } = dateRange;
-  const calculatedStartBalance = useMemo(() => calculateStartBalanceFromCurrentBalance(
-    filteredTransactions,
-    startYear,
-    startMonth,
-    endYear,
-    endMonth,
-    lineChartCurrentBalance
-  ), [filteredTransactions, startYear, startMonth, endYear, endMonth, lineChartCurrentBalance]);
+  const calculatedStartBalance = useMemo(
+    () =>
+      calculateStartBalanceFromCurrentBalance(
+        filteredTransactions,
+        startYear,
+        startMonth,
+        endYear,
+        endMonth,
+        lineChartCurrentBalance
+      ),
+    [filteredTransactions, startYear, startMonth, endYear, endMonth, lineChartCurrentBalance]
+  );
 
   function handleStartBalanceChange(event) {
     const value = event.target.value;
@@ -82,10 +86,12 @@ export default function ChartContainer({ showGroupingOptions = false }) {
               <select
                 className="form-input form-select"
                 value={barGroupBy ?? ''}
-                onChange={(e) => dispatch({
-                  type: 'SET_BAR_GROUP_BY',
-                  payload: e.target.value || null,
-                })}
+                onChange={(e) =>
+                  dispatch({
+                    type: 'SET_BAR_GROUP_BY',
+                    payload: e.target.value || null,
+                  })
+                }
               >
                 {GROUP_OPTIONS.map((opt) => (
                   <option key={String(opt.value)} value={opt.value ?? ''}>
@@ -100,21 +106,29 @@ export default function ChartContainer({ showGroupingOptions = false }) {
         {chartType === 'line' && (
           <div className="chart-balance-control">
             <div className="radio-group">
-              <label className={`radio-option${lineChartBalanceMode === 'start' ? ' radio-option--active' : ''}`}>
+              <label
+                className={`radio-option${lineChartBalanceMode === 'start' ? ' radio-option--active' : ''}`}
+              >
                 <input
                   type="radio"
                   name="line-chart-balance-mode"
                   checked={lineChartBalanceMode === 'start'}
-                  onChange={() => dispatch({ type: 'SET_LINE_CHART_BALANCE_MODE', payload: 'start' })}
+                  onChange={() =>
+                    dispatch({ type: 'SET_LINE_CHART_BALANCE_MODE', payload: 'start' })
+                  }
                 />
                 Startkontostand
               </label>
-              <label className={`radio-option${lineChartBalanceMode === 'current' ? ' radio-option--active' : ''}`}>
+              <label
+                className={`radio-option${lineChartBalanceMode === 'current' ? ' radio-option--active' : ''}`}
+              >
                 <input
                   type="radio"
                   name="line-chart-balance-mode"
                   checked={lineChartBalanceMode === 'current'}
-                  onChange={() => dispatch({ type: 'SET_LINE_CHART_BALANCE_MODE', payload: 'current' })}
+                  onChange={() =>
+                    dispatch({ type: 'SET_LINE_CHART_BALANCE_MODE', payload: 'current' })
+                  }
                 />
                 Aktueller Kontostand
               </label>
@@ -153,9 +167,13 @@ export default function ChartContainer({ showGroupingOptions = false }) {
       </div>
 
       <div className="chart-body">
-        {chartType === 'bar' ? <BalanceBarChart /> :
-         chartType === 'verlauf' ? <BalanceStackedTrendChart /> :
-         <BalanceLineChart />}
+        {chartType === 'bar' ? (
+          <BalanceBarChart />
+        ) : chartType === 'verlauf' ? (
+          <BalanceStackedTrendChart />
+        ) : (
+          <BalanceLineChart />
+        )}
       </div>
     </div>
   );

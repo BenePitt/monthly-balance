@@ -1,18 +1,6 @@
 import { getPurposeRows } from '../utils/formatting';
 import { TYPE_LABELS, RECURRENCE_LABELS } from '../domain/transaction';
-
-interface ImportDraft {
-  importId: string;
-  sourceRow: number;
-  date: string;
-  type: string;
-  amount: string | number;
-  purpose: string;
-  category: string;
-  partner: string;
-  recurrence: string;
-  matchedRule: string | null;
-}
+import { ImportDraft } from '../types';
 
 interface CsvPreviewTableProps {
   drafts: ImportDraft[];
@@ -22,6 +10,7 @@ interface CsvPreviewTableProps {
   onUpdateDraft: (importId: string, changes: Partial<ImportDraft>) => void;
   suggestedCategories: string[];
   suggestedPartners: string[];
+  debugMode: boolean;
 }
 
 export default function CsvPreviewTable({
@@ -32,6 +21,7 @@ export default function CsvPreviewTable({
   onUpdateDraft,
   suggestedCategories,
   suggestedPartners,
+  debugMode,
 }: CsvPreviewTableProps) {
   return (
     <div className="table-wrapper import-table-wrapper">
@@ -53,12 +43,16 @@ export default function CsvPreviewTable({
             <th>Kategorie</th>
             <th>Partner</th>
             <th>Wiederholung</th>
-            <th>Treffer</th>
+            <th>Status</th>
+            {debugMode && <th>Begründung</th>}
           </tr>
         </thead>
         <tbody>
           {drafts.map((draft) => (
-            <tr key={draft.importId} className={`tx-row tx-row--${draft.type}`}>
+            <tr
+              key={draft.importId}
+              className={`tx-row tx-row--${draft.type}${draft.isDuplicate ? ' tx-row--duplicate' : ''}`}
+            >
               <td>
                 <input
                   type="checkbox"
@@ -82,7 +76,9 @@ export default function CsvPreviewTable({
                   onChange={(e) => onUpdateDraft(draft.importId, { type: e.target.value })}
                 >
                   {Object.entries(TYPE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </td>
@@ -131,11 +127,20 @@ export default function CsvPreviewTable({
                   onChange={(e) => onUpdateDraft(draft.importId, { recurrence: e.target.value })}
                 >
                   {Object.entries(RECURRENCE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </td>
-              <td>{draft.matchedRule || '-'}</td>
+              <td>
+                {draft.isDuplicate ? (
+                  <span className="import-missing">Bereits vorhanden</span>
+                ) : (
+                  <span className="text-muted">Neu</span>
+                )}
+              </td>
+              {debugMode && <td className="import-debug-info">{draft.debugInfo || '-'}</td>}
             </tr>
           ))}
         </tbody>

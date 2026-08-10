@@ -49,6 +49,20 @@ export interface PeriodStats {
   avgMonthlyBalance: number;
 }
 
+export interface ImportDraft {
+  importId: string;
+  sourceRow: number;
+  date: string;
+  type: string;
+  amount: string | number;
+  purpose: string;
+  category: string;
+  partner: string;
+  recurrence: string;
+  isDuplicate: boolean;
+  debugInfo: string | null;
+}
+
 export type TransactionType = 'income' | 'expense';
 export type RecurrenceType = 'once' | 'monthly';
 export type ChartType = 'bar' | 'line' | 'verlauf';

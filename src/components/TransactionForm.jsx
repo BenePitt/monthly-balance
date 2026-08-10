@@ -51,8 +51,14 @@ export default function TransactionForm({ editTransaction, onClose }) {
     setForm((prev) => {
       const next = { ...prev };
       let changed = false;
-      if (suggestion.category && !prev.category) { next.category = suggestion.category; changed = true; }
-      if (suggestion.partner && !prev.partner) { next.partner = suggestion.partner; changed = true; }
+      if (suggestion.category && !prev.category) {
+        next.category = suggestion.category;
+        changed = true;
+      }
+      if (suggestion.partner && !prev.partner) {
+        next.partner = suggestion.partner;
+        changed = true;
+      }
       if (!changed) return prev;
       setAutoFilled({
         category: !!(suggestion.category && !prev.category),
@@ -106,9 +112,7 @@ export default function TransactionForm({ editTransaction, onClose }) {
 
   return (
     <form className="transaction-form" onSubmit={handleSubmit} noValidate>
-      <h2 className="form-title">
-        {isEditing ? 'Transaktion bearbeiten' : 'Neue Transaktion'}
-      </h2>
+      <h2 className="form-title">{isEditing ? 'Transaktion bearbeiten' : 'Neue Transaktion'}</h2>
 
       <div className="form-row">
         <div className="form-group">
@@ -116,7 +120,10 @@ export default function TransactionForm({ editTransaction, onClose }) {
             Typ
             <div className="radio-group">
               {['income', 'expense'].map((t) => (
-                <label key={t} className={`radio-option${form.type === t ? ' radio-option--active' : ''}`}>
+                <label
+                  key={t}
+                  className={`radio-option${form.type === t ? ' radio-option--active' : ''}`}
+                >
                   <input
                     type="radio"
                     name="type"
@@ -136,7 +143,10 @@ export default function TransactionForm({ editTransaction, onClose }) {
             Wiederholungsart
             <div className="radio-group">
               {['once', 'monthly'].map((r) => (
-                <label key={r} className={`radio-option${form.recurrence === r ? ' radio-option--active' : ''}`}>
+                <label
+                  key={r}
+                  className={`radio-option${form.recurrence === r ? ' radio-option--active' : ''}`}
+                >
                   <input
                     type="radio"
                     name="recurrence"
@@ -211,11 +221,15 @@ export default function TransactionForm({ editTransaction, onClose }) {
             />
             {suggestedCategories.length > 0 && (
               <datalist id="categories-list">
-                {suggestedCategories.map((c) => <option key={c} value={c} />)}
+                {suggestedCategories.map((c) => (
+                  <option key={c} value={c} />
+                ))}
               </datalist>
             )}
             {autoFilled.category && (
-              <span className="text-muted" style={{ fontSize: '0.78rem' }}>Vorschlag aus vorhandenen Daten</span>
+              <span className="text-muted" style={{ fontSize: '0.78rem' }}>
+                Vorschlag aus vorhandenen Daten
+              </span>
             )}
             {errors.category && <span className="form-error">{errors.category}</span>}
           </label>
@@ -234,11 +248,15 @@ export default function TransactionForm({ editTransaction, onClose }) {
             />
             {suggestedPartners.length > 0 && (
               <datalist id="partners-list">
-                {suggestedPartners.map((p) => <option key={p} value={p} />)}
+                {suggestedPartners.map((p) => (
+                  <option key={p} value={p} />
+                ))}
               </datalist>
             )}
             {autoFilled.partner && (
-              <span className="text-muted" style={{ fontSize: '0.78rem' }}>Vorschlag aus vorhandenen Daten</span>
+              <span className="text-muted" style={{ fontSize: '0.78rem' }}>
+                Vorschlag aus vorhandenen Daten
+              </span>
             )}
             {errors.partner && <span className="form-error">{errors.partner}</span>}
           </label>
@@ -246,7 +264,10 @@ export default function TransactionForm({ editTransaction, onClose }) {
       </div>
 
       <div className="form-actions">
-        <button type="submit" className={`btn btn-primary${form.type === 'income' ? ' btn-income' : ''}`}>
+        <button
+          type="submit"
+          className={`btn btn-primary${form.type === 'income' ? ' btn-income' : ''}`}
+        >
           {isEditing ? 'Änderungen speichern' : 'Transaktion speichern'}
         </button>
         {onClose && (

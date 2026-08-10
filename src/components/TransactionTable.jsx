@@ -1,9 +1,11 @@
-import { useState, useMemo, useImperativeHandle, forwardRef } from 'react';
+import { useState, useImperativeHandle, forwardRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatDate } from '../utils/formatting';
 import { TYPE_LABELS, RECURRENCE_LABELS } from '../domain/transaction';
 import { getUniqueValues } from '../domain/filterEngine';
 import { EMPTY_COLUMN_FILTERS, NEW_ROW_ID } from '../constants/ui';
+import { useSortedRows } from '../hooks/useSortedRows';
+import { useTransactionEdit } from '../hooks/useTransactionEdit';
 import EditTransactionRow from './EditTransactionRow';
 
 function DetailPanel({ t }) {
@@ -21,7 +23,8 @@ function DetailPanel({ t }) {
         <div className="tx-detail-item">
           <span className="tx-detail-label">Betrag</span>
           <span className={`tx-detail-value tx-amount--${t.type}`}>
-            {t.type === 'expense' ? '−' : '+'}{formatCurrency(t.amount)}
+            {t.type === 'expense' ? '−' : '+'}
+            {formatCurrency(t.amount)}
           </span>
         </div>
         <div className="tx-detail-item">
@@ -47,73 +50,37 @@ function DetailPanel({ t }) {
   );
 }
 
-function emptyEditValues() {
-  return {
-    date: new Date().toISOString().split('T')[0],
-    type: 'expense',
-    amount: '',
-    purpose: '',
-    category: '',
-    partner: '',
-    recurrence: 'once',
-  };
-}
+const TransactionTable = forwardRef(function TransactionTable(
+  {
+    transactions,
+    showAll = false,
+    maxVisibleRows = null,
+    showActions = false,
+    bulkEditMode = false,
+    selectedIds = new Set(),
+    onToggleSelect,
+    columnFilters = EMPTY_COLUMN_FILTERS,
+    onColumnFilterChange,
+  },
+  ref
+) {
+  const {
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    transactions: allTransactions,
+  } = useApp();
 
-const TransactionTable = forwardRef(function TransactionTable({
-  transactions,
-  showAll = false,
-  maxVisibleRows = null,
-  showActions = false,
-  bulkEditMode = false,
-  selectedIds = new Set(),
-  onToggleSelect,
-  columnFilters = EMPTY_COLUMN_FILTERS,
-  onColumnFilterChange,
-}, ref) {
-  const { addTransaction, updateTransaction, deleteTransaction, transactions: allTransactions } = useApp();
-
-  const [sortField, setSortField] = useState('date');
-  const [sortDir, setSortDir] = useState('desc');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editingValues, setEditingValues] = useState({});
-  const [editErrors, setEditErrors] = useState({});
   const [expandedId, setExpandedId] = useState(null);
-  const [frozenOrder, setFrozenOrder] = useState(null);
 
   const suggestedCategories = getUniqueValues(allTransactions, 'category');
   const suggestedPartners = getUniqueValues(allTransactions, 'partner');
 
   // ── Sort & display order ─────────────────────────────────────────────────
 
-  const sorted = useMemo(() => {
-    return [...transactions].sort((a, b) => {
-      let aVal = a[sortField];
-      let bVal = b[sortField];
-      if (sortField === 'amount') {
-        aVal = a.type === 'income' ? a.amount : -a.amount;
-        bVal = b.type === 'income' ? b.amount : -b.amount;
-      }
-      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [transactions, sortField, sortDir]);
-
-  const displayRows = useMemo(() => {
-    if (!frozenOrder) return sorted;
-    const map = new Map(transactions.map((t) => [t.id, t]));
-    const frozen = frozenOrder.map((id) => map.get(id)).filter(Boolean);
-    const frozenSet = new Set(frozenOrder);
-    const newItems = sorted.filter((t) => !frozenSet.has(t.id));
-    return [...frozen, ...newItems];
-  }, [frozenOrder, sorted, transactions]);
-
-  function handleSort(field) {
-    setFrozenOrder(null);
-    if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortField(field); setSortDir('asc'); }
-  }
+  const { sortField, sortDir, sorted, frozenOrder, setFrozenOrder, displayRows, handleSort } =
+    useSortedRows(transactions);
 
   // ── Expand ───────────────────────────────────────────────────────────────
 
@@ -127,7 +94,10 @@ const TransactionTable = forwardRef(function TransactionTable({
   const someSelected = !allSelected && displayRows.some((t) => selectedIds.has(t.id));
 
   function handleToggleAll() {
-    onToggleSelect?.(displayRows.map((t) => t.id), !allSelected);
+    onToggleSelect?.(
+      displayRows.map((t) => t.id),
+      !allSelected
+    );
   }
 
   // ── Delete ───────────────────────────────────────────────────────────────
@@ -141,88 +111,41 @@ const TransactionTable = forwardRef(function TransactionTable({
     }
   }
 
-  // ── New row (via ref) ────────────────────────────────────────────────────
+  // ── New row / edit existing row ─────────────────────────────────────────
 
-  useImperativeHandle(ref, () => ({
-    startNewRow() {
-      setFrozenOrder(sorted.map((t) => t.id));
-      setExpandedId(null);
-      setEditingId(NEW_ROW_ID);
-      setEditErrors({});
-      setEditingValues(emptyEditValues());
-    },
-  }), [sorted]);
+  const {
+    editingId,
+    editingValues,
+    editErrors,
+    setField,
+    startNewRow: startNewEditRow,
+    startEdit: startEditRow,
+    cancelEdit,
+    saveNewRow,
+    saveEdit,
+  } = useTransactionEdit(
+    addTransaction,
+    updateTransaction,
+    frozenOrder,
+    setFrozenOrder,
+    displayRows,
+    sorted
+  );
 
-  async function saveNewRow(andAddAnother = false) {
-    const errors = {};
-    const amt = parseFloat(editingValues.amount);
-    if (!editingValues.date) errors.date = true;
-    if (isNaN(amt) || amt <= 0) errors.amount = true;
-    if (!editingValues.purpose.trim()) errors.purpose = true;
-    if (!editingValues.category.trim()) errors.category = true;
-    if (!editingValues.partner.trim()) errors.partner = true;
-    if (Object.keys(errors).length > 0) { setEditErrors(errors); return; }
-
-    const fields = { ...editingValues, amount: amt };
-    setEditingId(null);
-    setEditingValues({});
-    setEditErrors({});
-
-    await addTransaction(fields);
-
-    if (andAddAnother) {
-      setEditingId(NEW_ROW_ID);
-      setEditErrors({});
-      setEditingValues(emptyEditValues());
-    }
-  }
-
-  // ── Edit existing row ────────────────────────────────────────────────────
+  useImperativeHandle(
+    ref,
+    () => ({
+      startNewRow() {
+        setExpandedId(null);
+        startNewEditRow();
+      },
+    }),
+    [startNewEditRow]
+  );
 
   function startEdit(t) {
-    setFrozenOrder(displayRows.map((tx) => tx.id));
     setExpandedId(null);
-    setEditingId(t.id);
-    setEditErrors({});
-    setEditingValues({
-      date: t.date,
-      type: t.type,
-      amount: String(t.amount),
-      purpose: t.purpose,
-      category: t.category,
-      partner: t.partner,
-      recurrence: t.recurrence,
-    });
-  }
-
-  function cancelEdit() {
-    if (editingId === NEW_ROW_ID) setFrozenOrder(null);
-    setEditingId(null);
-    setEditingValues({});
-    setEditErrors({});
-  }
-
-  async function saveEdit() {
-    const errors = {};
-    if (!editingValues.date) errors.date = true;
-    const amt = parseFloat(editingValues.amount);
-    if (isNaN(amt) || amt <= 0) errors.amount = true;
-    if (!editingValues.purpose.trim()) errors.purpose = true;
-    if (!editingValues.category.trim()) errors.category = true;
-    if (!editingValues.partner.trim()) errors.partner = true;
-    if (Object.keys(errors).length > 0) { setEditErrors(errors); return; }
-
-    const id = editingId;
-    const changes = { ...editingValues, amount: amt };
-    setEditingId(null);
-    setEditingValues({});
-    setEditErrors({});
-    await updateTransaction(id, changes);
-  }
-
-  function setField(field, value) {
-    setEditingValues((prev) => ({ ...prev, [field]: value }));
-    setEditErrors((prev) => ({ ...prev, [field]: undefined }));
+    startEditRow(t);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -260,9 +183,13 @@ const TransactionTable = forwardRef(function TransactionTable({
         <thead>
           <tr>
             <th className="th-expand" />
-            <th className="sortable" onClick={() => handleSort('date')}>Datum <SortIcon field="date" /></th>
+            <th className="sortable" onClick={() => handleSort('date')}>
+              Datum <SortIcon field="date" />
+            </th>
             <th>Typ</th>
-            <th className="sortable" onClick={() => handleSort('amount')}>Betrag <SortIcon field="amount" /></th>
+            <th className="sortable" onClick={() => handleSort('amount')}>
+              Betrag <SortIcon field="amount" />
+            </th>
             <th className="th-purpose">Verwendungszweck</th>
             <th>Kategorie</th>
             <th>Partner</th>
@@ -270,11 +197,16 @@ const TransactionTable = forwardRef(function TransactionTable({
             {visibleActions && <th>Aktionen</th>}
             {visibleCheckbox && (
               <th className="th-checkbox">
-                <input type="checkbox" className="row-checkbox"
+                <input
+                  type="checkbox"
+                  className="row-checkbox"
                   checked={allSelected}
-                  ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
                   onChange={handleToggleAll}
-                  title="Alle auswählen" />
+                  title="Alle auswählen"
+                />
               </th>
             )}
           </tr>
@@ -282,28 +214,73 @@ const TransactionTable = forwardRef(function TransactionTable({
           {onColumnFilterChange && (
             <tr className="filter-row">
               <td />
-              <td><input type="text" className="col-filter-input" placeholder="TT.MM.JJJJ"
-                value={columnFilters.date} onChange={cf('date')} /></td>
-              <td><select className="col-filter-input col-filter-select"
-                value={columnFilters.type} onChange={cf('type')}>
-                <option value="">Alle</option>
-                <option value="income">Einnahme</option>
-                <option value="expense">Ausgabe</option>
-              </select></td>
-              <td><input type="text" className="col-filter-input" placeholder="Suche…"
-                value={columnFilters.amount} onChange={cf('amount')} /></td>
-              <td><input type="text" className="col-filter-input" placeholder="Suche…"
-                value={columnFilters.purpose} onChange={cf('purpose')} /></td>
-              <td><input type="text" className="col-filter-input" placeholder="Suche…"
-                value={columnFilters.category} onChange={cf('category')} /></td>
-              <td><input type="text" className="col-filter-input" placeholder="Suche…"
-                value={columnFilters.partner} onChange={cf('partner')} /></td>
-              <td><select className="col-filter-input col-filter-select"
-                value={columnFilters.recurrence} onChange={cf('recurrence')}>
-                <option value="">Alle</option>
-                <option value="once">Einmalig</option>
-                <option value="monthly">Regelmäßig</option>
-              </select></td>
+              <td>
+                <input
+                  type="text"
+                  className="col-filter-input"
+                  placeholder="TT.MM.JJJJ"
+                  value={columnFilters.date}
+                  onChange={cf('date')}
+                />
+              </td>
+              <td>
+                <select
+                  className="col-filter-input col-filter-select"
+                  value={columnFilters.type}
+                  onChange={cf('type')}
+                >
+                  <option value="">Alle</option>
+                  <option value="income">Einnahme</option>
+                  <option value="expense">Ausgabe</option>
+                </select>
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="col-filter-input"
+                  placeholder="Suche…"
+                  value={columnFilters.amount}
+                  onChange={cf('amount')}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="col-filter-input"
+                  placeholder="Suche…"
+                  value={columnFilters.purpose}
+                  onChange={cf('purpose')}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="col-filter-input"
+                  placeholder="Suche…"
+                  value={columnFilters.category}
+                  onChange={cf('category')}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="col-filter-input"
+                  placeholder="Suche…"
+                  value={columnFilters.partner}
+                  onChange={cf('partner')}
+                />
+              </td>
+              <td>
+                <select
+                  className="col-filter-input col-filter-select"
+                  value={columnFilters.recurrence}
+                  onChange={cf('recurrence')}
+                >
+                  <option value="">Alle</option>
+                  <option value="once">Einmalig</option>
+                  <option value="monthly">Regelmäßig</option>
+                </select>
+              </td>
               {visibleActions && <td />}
               {visibleCheckbox && <td />}
             </tr>
@@ -366,19 +343,31 @@ const TransactionTable = forwardRef(function TransactionTable({
                   style={bulkEditMode ? { cursor: 'pointer' } : undefined}
                 >
                   <td className="td-expand">
-                    <button className="expand-btn"
-                      onClick={(e) => { e.stopPropagation(); toggleExpand(t.id); }}
-                      title={isExpanded ? 'Zuklappen' : 'Aufklappen'}>
+                    <button
+                      className="expand-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(t.id);
+                      }}
+                      title={isExpanded ? 'Zuklappen' : 'Aufklappen'}
+                    >
                       {isExpanded ? '▼' : '▶'}
                     </button>
                   </td>
                   <td className="tx-date">{formatDate(t.date)}</td>
-                  <td><span className={`badge badge--${t.type}`}>{TYPE_LABELS[t.type]}</span></td>
-                  <td className={`tx-amount tx-amount--${t.type}`}>
-                    {t.type === 'expense' ? '−' : '+'}{formatCurrency(t.amount)}
+                  <td>
+                    <span className={`badge badge--${t.type}`}>{TYPE_LABELS[t.type]}</span>
                   </td>
-                  <td className="td-purpose" title={t.purpose}>{t.purpose}</td>
-                  <td><span className="category-tag">{t.category}</span></td>
+                  <td className={`tx-amount tx-amount--${t.type}`}>
+                    {t.type === 'expense' ? '−' : '+'}
+                    {formatCurrency(t.amount)}
+                  </td>
+                  <td className="td-purpose" title={t.purpose}>
+                    {t.purpose}
+                  </td>
+                  <td>
+                    <span className="category-tag">{t.category}</span>
+                  </td>
                   <td className="tx-nowrap">{t.partner}</td>
                   <td>
                     <span className={`recurrence-tag recurrence-tag--${t.recurrence}`}>
@@ -393,18 +382,33 @@ const TransactionTable = forwardRef(function TransactionTable({
                         </button>
                         {confirmDeleteId === t.id ? (
                           <>
-                            <button className="btn btn-sm btn-danger"
-                              onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(t.id);
+                              }}
+                            >
                               Bestätigen
                             </button>
-                            <button className="btn btn-sm btn-outline"
-                              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}>
+                            <button
+                              className="btn btn-sm btn-outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteId(null);
+                              }}
+                            >
                               Abbrechen
                             </button>
                           </>
                         ) : (
-                          <button className="btn btn-sm btn-danger-outline"
-                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(t.id); }}>
+                          <button
+                            className="btn btn-sm btn-danger-outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDeleteId(t.id);
+                            }}
+                          >
                             Löschen
                           </button>
                         )}
@@ -413,8 +417,12 @@ const TransactionTable = forwardRef(function TransactionTable({
                   )}
                   {visibleCheckbox && (
                     <td className="td-checkbox" onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" className="row-checkbox" checked={isSelected}
-                        onChange={() => onToggleSelect?.([t.id], !isSelected)} />
+                      <input
+                        type="checkbox"
+                        className="row-checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleSelect?.([t.id], !isSelected)}
+                      />
                     </td>
                   )}
                 </tr>
@@ -441,11 +449,10 @@ const TransactionTable = forwardRef(function TransactionTable({
             </button>
           </span>
         )}
-        {!frozenOrder && (
-          bulkEditMode && selectedIds.size > 0
+        {!frozenOrder &&
+          (bulkEditMode && selectedIds.size > 0
             ? `${selectedIds.size} von ${transactions.length} ausgewählt`
-            : `${transactions.length} Transaktion${transactions.length !== 1 ? 'en' : ''}`
-        )}
+            : `${transactions.length} Transaktion${transactions.length !== 1 ? 'en' : ''}`)}
       </div>
     </div>
   );

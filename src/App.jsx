@@ -16,11 +16,16 @@ function AppContent() {
 
   function renderPage() {
     switch (activePage) {
-      case 'dashboard': return <Dashboard />;
-      case 'transaktionen': return <Transaktionen />;
-      case 'konten': return <Konten />;
-      case 'einstellungen': return <Einstellungen />;
-      default: return <Dashboard />;
+      case 'dashboard':
+        return <Dashboard />;
+      case 'transaktionen':
+        return <Transaktionen />;
+      case 'konten':
+        return <Konten />;
+      case 'einstellungen':
+        return <Einstellungen />;
+      default:
+        return <Dashboard />;
     }
   }
 
@@ -45,7 +50,9 @@ function AppContent() {
                 src={logoSrc}
                 alt="Veit-BDS"
                 className="legal-branding-logo"
-                onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none';
+                }}
               />
               <span>
                 Gebaut von <strong>Veit-BDS</strong>
@@ -57,7 +64,9 @@ function AppContent() {
                 src={logoSrc}
                 alt="Veit-BDS"
                 className="legal-branding-logo"
-                onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none';
+                }}
               />
               <span>
                 Gebaut von <strong>Veit-BDS</strong>
@@ -77,9 +86,7 @@ function AppContent() {
           )}
         </div>
       </footer>
-      {legalView && (
-        <LegalModal view={legalView} onClose={() => setLegalView(null)} />
-      )}
+      {legalView && <LegalModal view={legalView} onClose={() => setLegalView(null)} />}
     </div>
   );
 }

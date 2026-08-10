@@ -1,11 +1,31 @@
 const MONTH_NAMES_DE = [
-  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+  'Januar',
+  'Februar',
+  'März',
+  'April',
+  'Mai',
+  'Juni',
+  'Juli',
+  'August',
+  'September',
+  'Oktober',
+  'November',
+  'Dezember',
 ];
 
 const MONTH_NAMES_SHORT_DE = [
-  'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez',
+  'Jan',
+  'Feb',
+  'Mär',
+  'Apr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Okt',
+  'Nov',
+  'Dez',
 ];
 
 /**
@@ -83,9 +103,7 @@ export function euroAxisFormatter(value) {
  */
 export function getPurposeRows(text) {
   const lines = String(text || '').split('\n');
-  const visualRows = lines.reduce(
-    (sum, line) => sum + Math.max(1, Math.ceil(line.length / 42)), 0
-  );
+  const visualRows = lines.reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 42)), 0);
   return Math.min(6, Math.max(2, visualRows));
 }
 

@@ -11,7 +11,10 @@ export default function Detailtabelle() {
   const [rowLimit, setRowLimit] = useState('10');
   const filtersActive = hasActiveFilters(filters);
   const periodTransactions = getUniquePeriodTransactions(periodStats);
-  const totalOccurrences = periodStats.months.reduce((sum, month) => sum + month.transactions.length, 0);
+  const totalOccurrences = periodStats.months.reduce(
+    (sum, month) => sum + month.transactions.length,
+    0
+  );
   const maxVisibleRows = rowLimit === 'all' ? null : Number(rowLimit);
 
   if (isLoading) {
@@ -44,7 +47,8 @@ export default function Detailtabelle() {
           <h2 className="section-title">
             Transaktionen
             <span className="text-muted" style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>
-              {' '}({periodTransactions.length} eindeutig
+              {' '}
+              ({periodTransactions.length} eindeutig
               {totalOccurrences !== periodTransactions.length && `, ${totalOccurrences} Vorkommen`})
             </span>
           </h2>
@@ -56,7 +60,9 @@ export default function Detailtabelle() {
               onChange={(e) => setRowLimit(e.target.value)}
             >
               {DETAILTABELLE_ROW_LIMIT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </label>

@@ -130,19 +130,18 @@ export function calculateDailyPeriodStats(
   const normalizedStartBalance = normalizeMoneyValue(startBalance);
   let accountBalance = normalizedStartBalance;
 
-  const days = getDaysInRange(startYear, startMonth, endYear, endMonth)
-    .map((isoDate) => {
-      const day = calculateDayBalance(transactions, isoDate);
-      const dailyBalance = day.balance;
-      accountBalance += dailyBalance;
+  const days = getDaysInRange(startYear, startMonth, endYear, endMonth).map((isoDate) => {
+    const day = calculateDayBalance(transactions, isoDate);
+    const dailyBalance = day.balance;
+    accountBalance += dailyBalance;
 
-      return {
-        ...day,
-        dailyBalance,
-        balance: accountBalance,
-        accountBalance,
-      };
-    });
+    return {
+      ...day,
+      dailyBalance,
+      balance: accountBalance,
+      accountBalance,
+    };
+  });
   const totalIncome = days.reduce((sum, day) => sum + day.income, 0);
   const totalExpense = days.reduce((sum, day) => sum + day.expense, 0);
   const totalMovement = totalIncome - totalExpense;
@@ -171,7 +170,14 @@ export function calculateStartBalanceFromCurrentBalance(
   currentBalance = 0
 ) {
   const normalizedCurrentBalance = normalizeMoneyValue(currentBalance);
-  const stats = calculateDailyPeriodStats(transactions, startYear, startMonth, endYear, endMonth, 0);
+  const stats = calculateDailyPeriodStats(
+    transactions,
+    startYear,
+    startMonth,
+    endYear,
+    endMonth,
+    0
+  );
   return normalizedCurrentBalance - stats.totalMovement;
 }
 
@@ -310,7 +316,14 @@ export function buildGroupedChartData(periodStats, groupBy) {
  * recurring "monthly" transactions in each month.
  * Returns an array of { label, income, expense, balance }.
  */
-export function calculateDimensionTotals(transactions, dimension, startYear, startMonth, endYear, endMonth) {
+export function calculateDimensionTotals(
+  transactions,
+  dimension,
+  startYear,
+  startMonth,
+  endYear,
+  endMonth
+) {
   const periodStats = calculatePeriodStats(transactions, startYear, startMonth, endYear, endMonth);
   const totals = new Map();
 

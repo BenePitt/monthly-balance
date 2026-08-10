@@ -1,45 +1,21 @@
-import { useMemo, useRef } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-} from 'recharts';
+import { useMemo } from 'react';
+import { BarChart, Bar, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { formatCurrency, formatMonthShort, euroAxisFormatter } from '../utils/formatting';
+import { formatCurrency, formatMonthShort } from '../utils/formatting';
 import { buildGroupedChartData } from '../domain/balanceCalculator';
-
-const CHART_COLORS = [
-  '#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6',
-  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
-];
-
-const DIMENSION_LABELS = {
-  category: 'Kategorie',
-  purpose: 'Verwendungszweck',
-  partner: 'Transaktionspartner',
-};
-
-function euroTooltipFormatter(value) {
-  return [formatCurrency(value), ''];
-}
+import {
+  CHART_COLORS,
+  DIMENSION_LABELS,
+  tooltipBoxStyle,
+  renderChartAxes,
+  useMonthDrillDown,
+} from './chartShared';
 
 function SingleBarTooltip({ active, payload, barGroupBy }) {
   if (!active || !payload || payload.length === 0) return null;
   const entry = payload[0];
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid #e2e8f0',
-      borderRadius: '8px',
-      padding: '8px 12px',
-      fontSize: '13px',
-    }}>
+    <div style={tooltipBoxStyle}>
       <div style={{ color: '#64748b', marginBottom: 4 }}>{DIMENSION_LABELS[barGroupBy]}</div>
       <div style={{ fontWeight: 600, color: entry.color }}>
         {entry.name}: {formatCurrency(entry.value)}
@@ -51,27 +27,21 @@ function SingleBarTooltip({ active, payload, barGroupBy }) {
 export default function BalanceBarChart() {
   const { periodStats, barGroupBy, dispatch } = useApp();
   const { months } = periodStats;
-  const lastIndexRef = useRef(null);
 
-  function handleChartClick(data) {
-    if (data?.activeTooltipIndex !== undefined) lastIndexRef.current = data.activeTooltipIndex;
-  }
-
-  function handleDoubleClick() {
-    const idx = lastIndexRef.current;
-    if (idx != null && months[idx]) {
-      const { year, month } = months[idx];
-      dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: year, startMonth: month, endYear: year, endMonth: month } });
-    }
-  }
+  const { handleChartClick, handleDoubleClick } = useMonthDrillDown(
+    months,
+    (m) => ({ startYear: m.year, startMonth: m.month, endYear: m.year, endMonth: m.month }),
+    (range) => dispatch({ type: 'SET_DATE_RANGE', payload: range })
+  );
 
   const defaultData = useMemo(
-    () => months.map((m) => ({
-      name: formatMonthShort(m.year, m.month),
-      Einnahmen: m.income,
-      Ausgaben: m.expense,
-      Bilanz: m.balance,
-    })),
+    () =>
+      months.map((m) => ({
+        name: formatMonthShort(m.year, m.month),
+        Einnahmen: m.income,
+        Ausgaben: m.expense,
+        Bilanz: m.balance,
+      })),
     [months]
   );
 
@@ -97,16 +67,17 @@ export default function BalanceBarChart() {
     return (
       <div onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
         <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={defaultData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
+          <BarChart
+            data={defaultData}
+            margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+            onClick={handleChartClick}
+          >
+            {renderChartAxes({ xDataKey: 'name' })}
             <Tooltip
               formatter={(value, name) => [formatCurrency(value), name]}
               contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
             />
             <Legend />
-            <ReferenceLine y={0} stroke="#94a3b8" />
             <Bar dataKey="Einnahmen" fill="#22c55e" radius={[3, 3, 0, 0]} />
             <Bar dataKey="Ausgaben" fill="#ef4444" radius={[3, 3, 0, 0]} />
             <Bar dataKey="Bilanz" fill="#3b82f6" radius={[3, 3, 0, 0]} />
@@ -123,10 +94,12 @@ export default function BalanceBarChart() {
   return (
     <div onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
       <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-          <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
+        <BarChart
+          data={data}
+          margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+          onClick={handleChartClick}
+        >
+          {renderChartAxes({ xDataKey: 'name' })}
           {isSingleMonth ? (
             <Tooltip
               shared={false}
@@ -139,7 +112,6 @@ export default function BalanceBarChart() {
             />
           )}
           <Legend />
-          <ReferenceLine y={0} stroke="#94a3b8" />
           {series.map((s, i) => (
             <Bar
               key={s.name}

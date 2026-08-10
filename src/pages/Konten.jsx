@@ -36,7 +36,9 @@ export default function Konten() {
       await deleteAccount(id);
       setError('');
     } catch {
-      setError('Konto kann nicht gelöscht werden. Es ist entweder das Standardkonto oder es sind noch Transaktionen zugeordnet.');
+      setError(
+        'Konto kann nicht gelöscht werden. Es ist entweder das Standardkonto oder es sind noch Transaktionen zugeordnet.'
+      );
     }
   }
 
@@ -49,7 +51,10 @@ export default function Konten() {
       <section className="section">
         <div className="card">
           <h2 className="section-title">Neues Konto anlegen</h2>
-          <form onSubmit={handleAdd} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+          <form
+            onSubmit={handleAdd}
+            style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}
+          >
             <div className="form-group" style={{ flex: 1 }}>
               <label className="form-label required">
                 Kontoname
@@ -62,7 +67,9 @@ export default function Konten() {
                 />
               </label>
             </div>
-            <button type="submit" className="btn btn-primary">Konto anlegen</button>
+            <button type="submit" className="btn btn-primary">
+              Konto anlegen
+            </button>
           </form>
         </div>
       </section>
@@ -70,8 +77,20 @@ export default function Konten() {
       <section className="section">
         <div className="card">
           <h2 className="section-title">Vorhandene Konten</h2>
-          {error && <p className="form-error" style={{ marginBottom: '0.75rem' }}>{error}</p>}
-          <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {error && (
+            <p className="form-error" style={{ marginBottom: '0.75rem' }}>
+              {error}
+            </p>
+          )}
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+            }}
+          >
             {accounts.map((account) => (
               <li key={account.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {editingId === account.id ? (
@@ -83,8 +102,14 @@ export default function Konten() {
                       onChange={(e) => setEditingName(e.target.value)}
                       autoFocus
                     />
-                    <button type="submit" className="btn btn-sm btn-primary">Speichern</button>
-                    <button type="button" className="btn btn-sm btn-outline" onClick={() => setEditingId(null)}>
+                    <button type="submit" className="btn btn-sm btn-primary">
+                      Speichern
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={() => setEditingId(null)}
+                    >
                       Abbrechen
                     </button>
                   </form>
@@ -93,16 +118,25 @@ export default function Konten() {
                     <span style={{ flex: 1 }}>
                       {account.name}
                       {account.id === DEFAULT_ACCOUNT_ID && (
-                        <span className="text-muted" style={{ fontSize: '0.78rem', marginLeft: '0.5rem' }}>
+                        <span
+                          className="text-muted"
+                          style={{ fontSize: '0.78rem', marginLeft: '0.5rem' }}
+                        >
                           (Standardkonto)
                         </span>
                       )}
                     </span>
-                    <button className="btn btn-sm btn-outline" onClick={() => startEditing(account)}>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      onClick={() => startEditing(account)}
+                    >
                       Umbenennen
                     </button>
                     {account.id !== DEFAULT_ACCOUNT_ID && (
-                      <button className="btn btn-sm btn-outline" onClick={() => handleDelete(account.id)}>
+                      <button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => handleDelete(account.id)}
+                      >
                         Löschen
                       </button>
                     )}

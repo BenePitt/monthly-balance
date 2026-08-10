@@ -22,5 +22,12 @@ export function useBulkSelectMode() {
     });
   }, []);
 
-  return { bulkEditMode, setBulkEditMode, selectedIds, enterBulkMode, exitBulkMode, handleToggleSelect };
+  return {
+    bulkEditMode,
+    setBulkEditMode,
+    selectedIds,
+    enterBulkMode,
+    exitBulkMode,
+    handleToggleSelect,
+  };
 }

@@ -3,8 +3,7 @@ import TransactionTable from '../components/TransactionTable';
 import FilterPanel from '../components/FilterPanel';
 import MonthRangeSelector from '../components/MonthRangeSelector';
 import BulkEditForm from '../components/BulkEditForm';
-import CsvImportPanel from '../components/CsvImportPanel';
-import JsonImportExportPanel from '../components/JsonImportExportPanel';
+import ImportPanel from '../components/ImportPanel';
 import { useApp } from '../context/AppContext';
 import { createDemoTransactions } from '../utils/demoData';
 import { ROW_LIMIT_OPTIONS } from '../constants/ui';
@@ -18,8 +17,10 @@ export default function Transaktionen() {
   const tableRef = useRef(null);
   const tableSectionRef = useRef(null);
 
-  const { bulkEditMode, selectedIds, enterBulkMode, exitBulkMode, handleToggleSelect } = useBulkSelectMode();
-  const { columnFilters, handleColumnFilterChange, resetColumnFilters, hasColumnFilters } = useColumnFilters();
+  const { bulkEditMode, selectedIds, enterBulkMode, exitBulkMode, handleToggleSelect } =
+    useBulkSelectMode();
+  const { columnFilters, handleColumnFilterChange, resetColumnFilters, hasColumnFilters } =
+    useColumnFilters();
 
   const [rowLimit, setRowLimit] = useState('25');
   const [showDemoConfirm, setShowDemoConfirm] = useState(false);
@@ -27,10 +28,7 @@ export default function Transaktionen() {
 
   const maxVisibleRows = rowLimit === 'all' ? null : Number(rowLimit);
 
-  const periodTransactions = useMemo(
-    () => getUniquePeriodTransactions(periodStats),
-    [periodStats]
-  );
+  const periodTransactions = useMemo(() => getUniquePeriodTransactions(periodStats), [periodStats]);
 
   const tableTransactions = useMemo(
     () => applyColumnFilters(periodTransactions, columnFilters),
@@ -67,14 +65,9 @@ export default function Transaktionen() {
         <h1 className="page-title">Transaktionen</h1>
       </div>
 
-      {/* ── Daten hinzufügen (CSV + Neue Transaktion) ───────────────────── */}
+      {/* ── Daten hinzufügen ────────────────────────────────────────────── */}
       <section className="section">
-        <CsvImportPanel onNewTransaction={handleNewTransaction} />
-      </section>
-
-      {/* ── JSON Export / Import ─────────────────────────────────────────── */}
-      <section className="section">
-        <JsonImportExportPanel />
+        <ImportPanel onNewTransaction={handleNewTransaction} />
       </section>
 
       {/* ── Zeitraum ────────────────────────────────────────────────────── */}
@@ -123,16 +116,23 @@ export default function Transaktionen() {
             ) : (
               <>
                 <span className="bulk-mode-indicator">{selectedIds.size} ausgewählt</span>
-                <button className="btn btn-sm btn-outline" onClick={exitBulkMode}>Abbrechen</button>
+                <button className="btn btn-sm btn-outline" onClick={exitBulkMode}>
+                  Abbrechen
+                </button>
               </>
             )}
 
             <label className="table-row-limit">
               Anzeigen:
-              <select className="form-input form-select" value={rowLimit}
-                onChange={(e) => setRowLimit(e.target.value)}>
+              <select
+                className="form-input form-select"
+                value={rowLimit}
+                onChange={(e) => setRowLimit(e.target.value)}
+              >
                 {ROW_LIMIT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </label>
@@ -140,14 +140,24 @@ export default function Transaktionen() {
             {transactions.length === 0 && (
               <>
                 {!showDemoConfirm ? (
-                  <button className="btn btn-sm btn-outline" onClick={() => setShowDemoConfirm(true)}>
+                  <button
+                    className="btn btn-sm btn-outline"
+                    onClick={() => setShowDemoConfirm(true)}
+                  >
                     Demodaten laden
                   </button>
                 ) : (
                   <>
                     <span className="text-muted">Demodaten laden?</span>
-                    <button className="btn btn-sm btn-primary" onClick={handleLoadDemo}>Ja</button>
-                    <button className="btn btn-sm btn-outline" onClick={() => setShowDemoConfirm(false)}>Nein</button>
+                    <button className="btn btn-sm btn-primary" onClick={handleLoadDemo}>
+                      Ja
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      onClick={() => setShowDemoConfirm(false)}
+                    >
+                      Nein
+                    </button>
                   </>
                 )}
               </>
@@ -156,14 +166,24 @@ export default function Transaktionen() {
             {transactions.length > 0 && !bulkEditMode && (
               <>
                 {!showClearConfirm ? (
-                  <button className="btn btn-sm btn-danger-outline" onClick={() => setShowClearConfirm(true)}>
+                  <button
+                    className="btn btn-sm btn-danger-outline"
+                    onClick={() => setShowClearConfirm(true)}
+                  >
                     Alle löschen
                   </button>
                 ) : (
                   <>
                     <span className="text-muted">Alle löschen?</span>
-                    <button className="btn btn-sm btn-danger" onClick={handleClearAll}>Ja</button>
-                    <button className="btn btn-sm btn-outline" onClick={() => setShowClearConfirm(false)}>Nein</button>
+                    <button className="btn btn-sm btn-danger" onClick={handleClearAll}>
+                      Ja
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      onClick={() => setShowClearConfirm(false)}
+                    >
+                      Nein
+                    </button>
                   </>
                 )}
               </>

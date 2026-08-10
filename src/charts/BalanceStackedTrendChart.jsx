@@ -1,23 +1,8 @@
-import { useMemo, useState, useCallback, useRef } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-  Customized,
-} from 'recharts';
+import { useMemo, useState, useCallback } from 'react';
+import { BarChart, Bar, Tooltip, Legend, ResponsiveContainer, Customized } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { formatCurrency, formatMonthShort, euroAxisFormatter } from '../utils/formatting';
-
-const CHART_COLORS = [
-  '#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6',
-  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
-];
+import { formatCurrency, formatMonthShort } from '../utils/formatting';
+import { CHART_COLORS, tooltipBoxStyle, renderChartAxes, useMonthDrillDown } from './chartShared';
 
 function buildTrendData(months, type) {
   const allCategories = new Set();
@@ -100,13 +85,7 @@ function TrendTooltip({ active, payload, label, hoveredCat }) {
   if (!entry || entry.value === 0) return null;
 
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid #e2e8f0',
-      borderRadius: 8,
-      padding: '8px 12px',
-      fontSize: 13,
-    }}>
+    <div style={tooltipBoxStyle}>
       <p style={{ margin: 0, color: '#64748b', marginBottom: 4 }}>{label}</p>
       <p style={{ margin: 0, fontWeight: 600, color: entry.fill }}>
         {entry.dataKey}: {formatCurrency(entry.value)}
@@ -117,21 +96,14 @@ function TrendTooltip({ active, payload, label, hoveredCat }) {
 
 function TrendPanel({ title, months, type, colors, onMonthDoubleClick }) {
   const [hoveredCat, setHoveredCat] = useState(null);
-  const lastIndexRef = useRef(null);
 
-  function handleChartClick(data) {
-    if (data?.activeTooltipIndex !== undefined) lastIndexRef.current = data.activeTooltipIndex;
-  }
-
-  function handleDoubleClick() {
-    const idx = lastIndexRef.current;
-    if (idx != null && months[idx] && onMonthDoubleClick) onMonthDoubleClick(months[idx]);
-  }
-
-  const { data, categories } = useMemo(
-    () => buildTrendData(months, type),
-    [months, type]
+  const { handleChartClick, handleDoubleClick } = useMonthDrillDown(
+    months,
+    (m) => m,
+    (m) => onMonthDoubleClick?.(m)
   );
+
+  const { data, categories } = useMemo(() => buildTrendData(months, type), [months, type]);
 
   const handleMouseEnter = useCallback((cat) => () => setHoveredCat(cat), []);
   const handleMouseLeave = useCallback(() => setHoveredCat(null), []);
@@ -142,16 +114,15 @@ function TrendPanel({ title, months, type, colors, onMonthDoubleClick }) {
     <div className="verlauf-panel" onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
       <h3 className="verlauf-panel-title">{title}</h3>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-          <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
+        <BarChart
+          data={data}
+          margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+          onClick={handleChartClick}
+        >
+          {renderChartAxes({ xDataKey: 'name' })}
           <Tooltip content={<TrendTooltip hoveredCat={hoveredCat} />} />
           <Legend wrapperStyle={{ fontSize: '12px' }} />
-          <ReferenceLine y={0} stroke="#94a3b8" />
-          <Customized component={(props) => (
-            <SankeyConnectors {...props} colors={colors} />
-          )} />
+          <Customized component={(props) => <SankeyConnectors {...props} colors={colors} />} />
           {categories.map((cat, i) => (
             <Bar
               key={`bar-${cat}`}
@@ -170,24 +141,20 @@ function TrendPanel({ title, months, type, colors, onMonthDoubleClick }) {
 }
 
 function SimpleBalancePanel({ months, onMonthDoubleClick }) {
-  const lastIndexRef = useRef(null);
-
-  function handleChartClick(data) {
-    if (data?.activeTooltipIndex !== undefined) lastIndexRef.current = data.activeTooltipIndex;
-  }
-
-  function handleDoubleClick() {
-    const idx = lastIndexRef.current;
-    if (idx != null && months[idx] && onMonthDoubleClick) onMonthDoubleClick(months[idx]);
-  }
+  const { handleChartClick, handleDoubleClick } = useMonthDrillDown(
+    months,
+    (m) => m,
+    (m) => onMonthDoubleClick?.(m)
+  );
 
   const data = useMemo(
-    () => months.map((m) => ({
-      name: formatMonthShort(m.year, m.month),
-      Einnahmen: m.income,
-      Ausgaben: m.expense,
-      Bilanz: m.balance,
-    })),
+    () =>
+      months.map((m) => ({
+        name: formatMonthShort(m.year, m.month),
+        Einnahmen: m.income,
+        Ausgaben: m.expense,
+        Bilanz: m.balance,
+      })),
     [months]
   );
 
@@ -195,16 +162,17 @@ function SimpleBalancePanel({ months, onMonthDoubleClick }) {
     <div className="verlauf-panel" onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
       <h3 className="verlauf-panel-title">Bilanz</h3>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }} onClick={handleChartClick}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-          <YAxis tickFormatter={euroAxisFormatter} tick={{ fontSize: 12 }} width={80} />
+        <BarChart
+          data={data}
+          margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+          onClick={handleChartClick}
+        >
+          {renderChartAxes({ xDataKey: 'name' })}
           <Tooltip
             formatter={(value, name) => [formatCurrency(value), name]}
             contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
           />
           <Legend />
-          <ReferenceLine y={0} stroke="#94a3b8" />
           <Bar dataKey="Einnahmen" fill="#22c55e" radius={[3, 3, 0, 0]} />
           <Bar dataKey="Ausgaben" fill="#ef4444" radius={[3, 3, 0, 0]} />
           <Bar dataKey="Bilanz" fill="#3b82f6" radius={[3, 3, 0, 0]} />
@@ -219,7 +187,10 @@ export default function BalanceStackedTrendChart() {
   const { months } = periodStats;
 
   function handleMonthDoubleClick({ year, month }) {
-    dispatch({ type: 'SET_DATE_RANGE', payload: { startYear: year, startMonth: month, endYear: year, endMonth: month } });
+    dispatch({
+      type: 'SET_DATE_RANGE',
+      payload: { startYear: year, startMonth: month, endYear: year, endMonth: month },
+    });
   }
 
   if (months.length === 0) {
@@ -228,8 +199,20 @@ export default function BalanceStackedTrendChart() {
 
   return (
     <div className="verlauf-charts">
-      <TrendPanel title="Einnahmen" months={months} type="income" colors={CHART_COLORS} onMonthDoubleClick={handleMonthDoubleClick} />
-      <TrendPanel title="Ausgaben" months={months} type="expense" colors={CHART_COLORS} onMonthDoubleClick={handleMonthDoubleClick} />
+      <TrendPanel
+        title="Einnahmen"
+        months={months}
+        type="income"
+        colors={CHART_COLORS}
+        onMonthDoubleClick={handleMonthDoubleClick}
+      />
+      <TrendPanel
+        title="Ausgaben"
+        months={months}
+        type="expense"
+        colors={CHART_COLORS}
+        onMonthDoubleClick={handleMonthDoubleClick}
+      />
       <SimpleBalancePanel months={months} onMonthDoubleClick={handleMonthDoubleClick} />
     </div>
   );

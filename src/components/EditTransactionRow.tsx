@@ -111,7 +111,9 @@ export default function EditTransactionRow({
           onChange={(e) => onChange('category', e.target.value)}
         />
         <datalist id={`${idPrefix}-category-options`}>
-          {suggestedCategories.map((c) => <option key={c} value={c} />)}
+          {suggestedCategories.map((c) => (
+            <option key={c} value={c} />
+          ))}
         </datalist>
       </td>
       <td>
@@ -124,7 +126,9 @@ export default function EditTransactionRow({
           onChange={(e) => onChange('partner', e.target.value)}
         />
         <datalist id={`${idPrefix}-partner-options`}>
-          {suggestedPartners.map((p) => <option key={p} value={p} />)}
+          {suggestedPartners.map((p) => (
+            <option key={p} value={p} />
+          ))}
         </datalist>
       </td>
       <td>
@@ -159,8 +163,12 @@ export default function EditTransactionRow({
             </>
           ) : (
             <>
-              <button className="btn btn-sm btn-primary" onClick={onSave}>Speichern</button>
-              <button className="btn btn-sm btn-outline" onClick={onCancel}>Abbrechen</button>
+              <button className="btn btn-sm btn-primary" onClick={onSave}>
+                Speichern
+              </button>
+              <button className="btn btn-sm btn-outline" onClick={onCancel}>
+                Abbrechen
+              </button>
             </>
           )}
         </div>

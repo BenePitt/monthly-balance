@@ -44,7 +44,9 @@ function formatLine(entry) {
       return `[${t}] ${label}${data.imported} importiert, ${data.skipped} übersprungen`;
     case 'CSV-ZEILE': {
       const part = data.matchPart && data.matchPart !== 'Volltext' ? ` via ${data.matchPart}` : '';
-      const src = data.matchSource ? `[${data.matchSource}${part}: "${data.matchedKeyword}"]` : '[kein Match]';
+      const src = data.matchSource
+        ? `[${data.matchSource}${part}: "${data.matchedKeyword}"]`
+        : '[kein Match]';
       return `[${t}] CSV-ZEILE ${String(data.row).padEnd(6)} "${data.purpose}" → ${data.category} / ${data.partner}  ${src}`;
     }
     case 'JSON-IMPORT':
@@ -61,8 +63,12 @@ function formatLine(entry) {
 }
 
 export const AppLogger = {
-  setDebugMode(val) { debugMode = Boolean(val); },
-  isDebugMode() { return debugMode; },
+  setDebugMode(val) {
+    debugMode = Boolean(val);
+  },
+  isDebugMode() {
+    return debugMode;
+  },
 
   log(event, data) {
     if (entries.length >= MAX_ENTRIES) entries.shift();
@@ -82,11 +88,7 @@ export const AppLogger = {
   },
 
   formatAsText() {
-    const lines = [
-      '=== Monatliche Bilanz – Anwendungslog ===',
-      `Sitzung: ${sessionStart}`,
-      '',
-    ];
+    const lines = ['=== Monatliche Bilanz – Anwendungslog ===', `Sitzung: ${sessionStart}`, ''];
     for (const entry of entries) {
       lines.push(formatLine(entry));
     }

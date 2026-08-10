@@ -1,7 +1,8 @@
 import { useApp } from '../context/AppContext';
 
 export default function Navigation({ activePage, onNavigate }) {
-  const { isElectron, saveStatus, manualSave, accounts, selectedAccountId, setSelectedAccount } = useApp();
+  const { isElectron, saveStatus, manualSave, accounts, selectedAccountId, setSelectedAccount } =
+    useApp();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -35,7 +36,9 @@ export default function Navigation({ activePage, onNavigate }) {
             title="Aktives Konto für neue Transaktionen"
           >
             {accounts.map((account) => (
-              <option key={account.id} value={account.id}>{account.name}</option>
+              <option key={account.id} value={account.id}>
+                {account.name}
+              </option>
             ))}
           </select>
         )}
@@ -46,7 +49,11 @@ export default function Navigation({ activePage, onNavigate }) {
             disabled={saveStatus === 'saving'}
             title="Daten jetzt speichern"
           >
-            {saveStatus === 'saved' ? '✓ Gespeichert' : saveStatus === 'saving' ? 'Speichert…' : '💾 Speichern'}
+            {saveStatus === 'saved'
+              ? '✓ Gespeichert'
+              : saveStatus === 'saving'
+                ? 'Speichert…'
+                : '💾 Speichern'}
           </button>
         )}
       </div>

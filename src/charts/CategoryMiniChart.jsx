@@ -42,11 +42,14 @@ function TxTooltip({ tx, pos }) {
     <div style={style}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, gap: 12 }}>
         <span style={{ color: '#64748b' }}>{formatDate(tx.date)}</span>
-        <span style={{
-          fontWeight: 600,
-          color: tx.type === 'income' ? '#16a34a' : '#dc2626',
-        }}>
-          {tx.type === 'expense' ? '−' : '+'}{formatCurrency(tx.amount)}
+        <span
+          style={{
+            fontWeight: 600,
+            color: tx.type === 'income' ? '#16a34a' : '#dc2626',
+          }}
+        >
+          {tx.type === 'expense' ? '−' : '+'}
+          {formatCurrency(tx.amount)}
         </span>
       </div>
       {tx.purpose && (
@@ -54,7 +57,15 @@ function TxTooltip({ tx, pos }) {
           {tx.purpose}
         </div>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', color: '#64748b', marginTop: 4 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '4px 10px',
+          color: '#64748b',
+          marginTop: 4,
+        }}
+      >
         {tx.partner && <span>Partner: {tx.partner}</span>}
         <span>{TYPE_LABELS[tx.type]}</span>
         <span>{RECURRENCE_LABELS[tx.recurrence]}</span>
@@ -84,12 +95,13 @@ function CategoryMiniChart({ category, transactions, dateRange }) {
   );
 
   const chartData = useMemo(
-    () => periodStats.months.map((m) => ({
-      name: formatMonthShort(m.year, m.month),
-      Einnahmen: m.income,
-      Ausgaben: m.expense,
-      Bilanz: m.balance,
-    })),
+    () =>
+      periodStats.months.map((m) => ({
+        name: formatMonthShort(m.year, m.month),
+        Einnahmen: m.income,
+        Ausgaben: m.expense,
+        Bilanz: m.balance,
+      })),
     [periodStats]
   );
 
@@ -99,9 +111,7 @@ function CategoryMiniChart({ category, transactions, dateRange }) {
       const txYM = ty * 12 + tm;
       return txYM >= startYear * 12 + startMonth && txYM <= endYear * 12 + endMonth;
     });
-    return [...inRange]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 5);
+    return [...inRange].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   }, [categoryTransactions, startYear, startMonth, endYear, endMonth]);
 
   function handleMouseEnter(t, e) {
@@ -118,7 +128,11 @@ function CategoryMiniChart({ category, transactions, dateRange }) {
   }
 
   return (
-    <div className="category-mini-card" onDoubleClick={handleDoubleClick} style={{ cursor: 'pointer' }}>
+    <div
+      className="category-mini-card"
+      onDoubleClick={handleDoubleClick}
+      style={{ cursor: 'pointer' }}
+    >
       <h3 className="category-mini-title">{category}</h3>
 
       {periodStats.months.length > 0 && (
@@ -167,7 +181,8 @@ function CategoryMiniChart({ category, transactions, dateRange }) {
                 <td className="category-mini-date">{formatDate(t.date)}</td>
                 <td className="category-mini-purpose">{t.purpose || t.partner || '–'}</td>
                 <td className="category-mini-amount">
-                  {t.type === 'expense' ? '−' : '+'}{formatCurrency(t.amount)}
+                  {t.type === 'expense' ? '−' : '+'}
+                  {formatCurrency(t.amount)}
                 </td>
               </tr>
             ))}

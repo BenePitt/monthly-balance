@@ -5,9 +5,6 @@ export interface UIContextValue {
   barGroupBy: 'category' | 'purpose' | 'partner' | null;
   categorySort: 'none' | 'income' | 'expense' | 'balance';
   hideEmptyCategories: boolean;
-  lineChartBalanceMode: 'start' | 'current';
-  lineChartStartBalance: number;
-  lineChartCurrentBalance: number;
   saveStatus: 'idle' | 'saving' | 'saved';
   isElectron: boolean;
   dispatch: React.Dispatch<{ type: string; payload?: unknown }>;

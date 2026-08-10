@@ -13,13 +13,25 @@ import {
 } from '../balanceCalculator';
 
 const income = (date, amount, recurrence = 'once', category = 'Test') => ({
-  id: '1', date, type: 'income', amount, purpose: 'Test', category,
-  partner: 'Test', recurrence,
+  id: '1',
+  date,
+  type: 'income',
+  amount,
+  purpose: 'Test',
+  category,
+  partner: 'Test',
+  recurrence,
 });
 
 const expense = (date, amount, recurrence = 'once', category = 'Test') => ({
-  id: '2', date, type: 'expense', amount, purpose: 'Test', category,
-  partner: 'Test', recurrence,
+  id: '2',
+  date,
+  type: 'expense',
+  amount,
+  purpose: 'Test',
+  category,
+  partner: 'Test',
+  recurrence,
 });
 
 // --- isTransactionInMonth ---
@@ -65,12 +77,12 @@ describe('calculateMonthBalance', () => {
     const transactions = [
       income('2026-05-01', 3200),
       expense('2026-05-03', 950),
-      expense('2026-05-07', 54.90),
+      expense('2026-05-07', 54.9),
     ];
     const result = calculateMonthBalance(transactions, 2026, 5);
     expect(result.income).toBeCloseTo(3200);
-    expect(result.expense).toBeCloseTo(1004.90);
-    expect(result.balance).toBeCloseTo(3200 - 1004.90);
+    expect(result.expense).toBeCloseTo(1004.9);
+    expect(result.balance).toBeCloseTo(3200 - 1004.9);
   });
 
   it('regelmäßige Ausgabe erscheint in mehreren Monaten', () => {
@@ -194,10 +206,7 @@ describe('calculateDailyPeriodStats', () => {
   });
 
   it('berechnet die Bilanz als laufenden Kontostand ab Startkontostand', () => {
-    const transactions = [
-      income('2026-05-02', 100),
-      expense('2026-05-04', 30),
-    ];
+    const transactions = [income('2026-05-02', 100), expense('2026-05-04', 30)];
 
     const stats = calculateDailyPeriodStats(transactions, 2026, 5, 2026, 5, 500);
 
@@ -226,10 +235,7 @@ describe('calculateDailyPeriodStats', () => {
 
 describe('calculateStartBalanceFromCurrentBalance', () => {
   it('berechnet den Startkontostand aus aktuellem Kontostand und Zeitraumbewegung', () => {
-    const transactions = [
-      income('2026-05-02', 100),
-      expense('2026-05-04', 30),
-    ];
+    const transactions = [income('2026-05-02', 100), expense('2026-05-04', 30)];
 
     const startBalance = calculateStartBalanceFromCurrentBalance(
       transactions,

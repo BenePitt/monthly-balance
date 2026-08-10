@@ -1,4 +1,7 @@
 import { AppLogger } from '../utils/AppLogger';
+import { getUniqueValues } from './filterEngine';
+import { isDuplicateTransaction } from './duplicateDetection';
+import { relativeLevenshteinDistance } from './textSimilarity';
 
 const REQUIRED_COLUMNS = {
   date: ['buchungstag'],
@@ -46,19 +49,36 @@ const PUBLIC_PARTNER_RULES = [
   { partner: 'Shell', category: 'Mobilitaet', keywords: ['shell'] },
   { partner: 'Aral', category: 'Mobilitaet', keywords: ['aral'] },
   { partner: 'Esso', category: 'Mobilitaet', keywords: ['esso'] },
-  { partner: 'TotalEnergies', category: 'Mobilitaet', keywords: ['totalenergies', 'total energies'] },
+  {
+    partner: 'TotalEnergies',
+    category: 'Mobilitaet',
+    keywords: ['totalenergies', 'total energies'],
+  },
   { partner: 'Telekom', category: 'Telekommunikation', keywords: ['telekom'] },
   { partner: 'Vodafone', category: 'Telekommunikation', keywords: ['vodafone'] },
   { partner: 'O2', category: 'Telekommunikation', keywords: [/\bo2\b/, 'telefonica'] },
 ];
 
 const GENERIC_RULES = [
-  { partner: 'Arbeitgeber', category: 'Gehalt', type: 'income', keywords: ['gehalt', 'lohn', 'salary'] },
+  {
+    partner: 'Arbeitgeber',
+    category: 'Gehalt',
+    type: 'income',
+    keywords: ['gehalt', 'lohn', 'salary'],
+  },
   { partner: 'Vermieter', category: 'Wohnen', keywords: ['miete', 'vermieter'] },
-  { partner: 'Stadtwerke', category: 'Nebenkosten', keywords: ['stadtwerke', 'strom', 'gasabschlag'] },
+  {
+    partner: 'Stadtwerke',
+    category: 'Nebenkosten',
+    keywords: ['stadtwerke', 'strom', 'gasabschlag'],
+  },
   { partner: 'Versicherung', category: 'Versicherung', keywords: ['versicherung'] },
   { partner: 'Finanzamt', category: 'Steuern', keywords: ['finanzamt', 'steuer'] },
-  { partner: 'Bank', category: 'Bankgebuehren', keywords: ['kontofuehrung', 'kontofuehrungsentgelt', 'gebuehr'] },
+  {
+    partner: 'Bank',
+    category: 'Bankgebuehren',
+    keywords: ['kontofuehrung', 'kontofuehrungsentgelt', 'gebuehr'],
+  },
 ];
 
 function normalizeText(value) {
@@ -99,12 +119,34 @@ function extractBookingParts(rawText) {
 }
 
 const LEARNED_STOP_WORDS = new Set([
-  'gmbh', 'kgaa', 'bank', 'kauf', 'zahlung', 'auftrag', 'euro', 'eur',
-  'lastschrift', 'ueberweisung', 'datum', 'referenz', 'abschluss',
-  'sepa', 'iban', 'bic', 'mandat', 'gutschrift', 'eingang',
+  'gmbh',
+  'kgaa',
+  'bank',
+  'kauf',
+  'zahlung',
+  'auftrag',
+  'euro',
+  'eur',
+  'lastschrift',
+  'ueberweisung',
+  'datum',
+  'referenz',
+  'abschluss',
+  'sepa',
+  'iban',
+  'bic',
+  'mandat',
+  'gutschrift',
+  'eingang',
   // structural field-label prefixes embedded in bank booking texts
-  'auftraggeber', 'buchungstext', 'empfanger', 'empfaenger',
-  'kartenzahlung', 'bargeldauszahlung', 'kreditkarte', 'debitkarte',
+  'auftraggeber',
+  'buchungstext',
+  'empfanger',
+  'empfaenger',
+  'kartenzahlung',
+  'bargeldauszahlung',
+  'kreditkarte',
+  'debitkarte',
   // encoding artifact: "Empfänger" corrupted to "Empf???" → tokenizes to "empf"
   'empf',
 ]);
@@ -124,9 +166,10 @@ export function buildLearnedRules(transactions) {
 
     // For structured bank texts: learn from counterparty name + booking content.
     // For plain text (manually entered): learn from the full purpose.
-    const sourceText = (counterparty || bookingContent)
-      ? [counterparty, bookingContent].filter(Boolean).join(' ')
-      : tx.purpose;
+    const sourceText =
+      counterparty || bookingContent
+        ? [counterparty, bookingContent].filter(Boolean).join(' ')
+        : tx.purpose;
 
     const words = normalizeText(sourceText)
       .split(/[^a-z0-9]+/)
@@ -163,10 +206,12 @@ export function inferTransactionMetadata(bookingText, type = 'expense', learnedR
   function findRule(text) {
     if (!text) return null;
     const norm = normalizeText(text);
-    return allRules.find((c) => {
-      if (c.type && c.type !== type) return false;
-      return c.keywords.some((kw) => matchesKeyword(norm, kw));
-    }) ?? null;
+    return (
+      allRules.find((c) => {
+        if (c.type && c.type !== type) return false;
+        return c.keywords.some((kw) => matchesKeyword(norm, kw));
+      }) ?? null
+    );
   }
 
   // 1. Match on counterparty name (most precise: who sent/received the money)
@@ -179,6 +224,193 @@ export function inferTransactionMetadata(bookingText, type = 'expense', learnedR
     partner: rule?.partner || '',
     matchedRule: rule?.partner || null,
   };
+}
+
+function getComparableText(purpose) {
+  const { bookingContent } = extractBookingParts(purpose);
+  return bookingContent || purpose || '';
+}
+
+function findKeywordRule(text, type, allRules) {
+  if (!text) return null;
+  const norm = normalizeText(text);
+  return (
+    allRules.find((c) => {
+      if (c.type && c.type !== type) return false;
+      return c.keywords.some((kw) => matchesKeyword(norm, kw));
+    }) ?? null
+  );
+}
+
+function pickMostRecent(transactions) {
+  return transactions.slice().sort((a, b) => {
+    const aTime = new Date(a.updatedAt || a.createdAt || a.date).getTime();
+    const bTime = new Date(b.updatedAt || b.createdAt || b.date).getTime();
+    return bTime - aTime;
+  })[0];
+}
+
+// Finds the transaction whose comparable text is closest (lowest relative Levenshtein
+// distance) to `text`. When `minSimilarity` is set, returns null unless the best match
+// clears that similarity threshold (similarity = 1 - relative distance).
+function findClosestByText(pool, text, { minSimilarity = 0 } = {}) {
+  let best = null;
+  let bestDistance = Infinity;
+  for (const tx of pool) {
+    const distance = relativeLevenshteinDistance(text, getComparableText(tx.purpose));
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = tx;
+    }
+  }
+  if (!best) return null;
+  const similarity = 1 - bestDistance;
+  if (similarity < minSimilarity) return null;
+  return { transaction: best, similarity };
+}
+
+// Category priority: 1) exact amount+type+partner match, 2) closest text match among
+// same type+partner, 3) closest text match among same partner (any type), 4) a known
+// category name literally appearing in the text, 5) closest text match across all
+// history if at least 70% similar, 6) empty (caller applies the "Sonstiges" fallback).
+function inferCategory({ text, partner, type, amount }, existingTransactions) {
+  if (existingTransactions.length === 0) {
+    return { category: '', categorySource: 'keine-historie', matchedTransaction: null };
+  }
+
+  if (partner) {
+    const sameTypePartner = existingTransactions.filter(
+      (t) => t.partner === partner && t.type === type
+    );
+    if (sameTypePartner.length > 0) {
+      const exactAmountMatches = sameTypePartner.filter((t) => Number(t.amount) === amount);
+      if (exactAmountMatches.length > 0) {
+        const match = pickMostRecent(exactAmountMatches);
+        return {
+          category: match.category,
+          categorySource: 'exakter-treffer',
+          matchedTransaction: match,
+        };
+      }
+      const closest = findClosestByText(sameTypePartner, text);
+      return {
+        category: closest.transaction.category,
+        categorySource: 'levenshtein-typ-partner',
+        matchedTransaction: closest.transaction,
+        similarity: closest.similarity,
+      };
+    }
+
+    const samePartner = existingTransactions.filter((t) => t.partner === partner);
+    if (samePartner.length > 0) {
+      const closest = findClosestByText(samePartner, text);
+      return {
+        category: closest.transaction.category,
+        categorySource: 'levenshtein-partner',
+        matchedTransaction: closest.transaction,
+        similarity: closest.similarity,
+      };
+    }
+  }
+
+  const knownCategories = getUniqueValues(existingTransactions, 'category');
+  const normalizedText = normalizeText(text);
+  const substringMatch = knownCategories.find((cat) => normalizedText.includes(normalizeText(cat)));
+  if (substringMatch) {
+    return {
+      category: substringMatch,
+      categorySource: 'kategorie-im-text',
+      matchedTransaction: null,
+    };
+  }
+
+  const globalClosest = findClosestByText(existingTransactions, text, { minSimilarity: 0.7 });
+  if (globalClosest) {
+    return {
+      category: globalClosest.transaction.category,
+      categorySource: 'levenshtein-global',
+      matchedTransaction: globalClosest.transaction,
+      similarity: globalClosest.similarity,
+    };
+  }
+
+  return { category: '', categorySource: 'sonstiges-kein-treffer', matchedTransaction: null };
+}
+
+const PARTNER_SOURCE_TEXT = {
+  auftraggeber: 'Partner aus "Auftraggeber:"-Feld übernommen.',
+  'keyword-regel': 'Partner über Keyword-Regel erkannt.',
+  'kein-treffer': 'Kein Partner erkannt.',
+};
+
+function buildDebugReason({
+  partner,
+  partnerSource,
+  categorySource,
+  matchedTransaction,
+  similarity,
+}) {
+  const partnerText = partner
+    ? `${PARTNER_SOURCE_TEXT[partnerSource]} ("${partner}")`
+    : PARTNER_SOURCE_TEXT[partnerSource];
+
+  const similarityPct = similarity != null ? `${Math.round(similarity * 100)}%` : null;
+  const categoryTextMap = {
+    'exakter-treffer': `Kategorie von identischer Buchung (gleicher Betrag/Typ/Partner) übernommen: "${matchedTransaction?.purpose}".`,
+    'levenshtein-typ-partner': `Kategorie von ähnlichster Buchung mit gleichem Typ+Partner übernommen (Ähnlichkeit ${similarityPct}): "${matchedTransaction?.purpose}".`,
+    'levenshtein-partner': `Kategorie von ähnlichster Buchung mit gleichem Partner übernommen (Ähnlichkeit ${similarityPct}): "${matchedTransaction?.purpose}".`,
+    'kategorie-im-text': 'Kategorie-Name im Buchungstext gefunden.',
+    'levenshtein-global': `Kategorie von global ähnlichster Buchung übernommen (Ähnlichkeit ${similarityPct}): "${matchedTransaction?.purpose}".`,
+    'sonstiges-kein-treffer':
+      'Keine ausreichend ähnliche Buchung gefunden (unter 70% Ähnlichkeit) → "Sonstiges".',
+    'keine-historie': 'Keine bestehenden Transaktionen zum Vergleich vorhanden → "Sonstiges".',
+  };
+
+  return `${partnerText} ${categoryTextMap[categorySource]}`;
+}
+
+// Rework of the CSV metadata inference: the partner comes directly from the
+// "Auftraggeber:"/"Buchungstext:" structure when present (keyword rules are only a
+// fallback for unstructured texts), and the category is derived from the user's own
+// transaction history (see `inferCategory`) instead of a fixed keyword→category list.
+export function inferImportMetadata({
+  bookingText,
+  type = 'expense',
+  amount = 0,
+  existingTransactions = [],
+  learnedRules = [],
+  debug = false,
+}) {
+  const { counterparty, bookingContent } = extractBookingParts(bookingText);
+  const comparableText = bookingContent || bookingText || '';
+
+  let partner = '';
+  let partnerSource = 'kein-treffer';
+
+  if (counterparty) {
+    partner = counterparty;
+    partnerSource = 'auftraggeber';
+  } else {
+    const allRules = [...learnedRules, ...PUBLIC_PARTNER_RULES, ...GENERIC_RULES];
+    const rule =
+      findKeywordRule(bookingContent, type, allRules) ??
+      findKeywordRule(bookingText, type, allRules);
+    if (rule) {
+      partner = rule.partner;
+      partnerSource = 'keyword-regel';
+    }
+  }
+
+  const { category, categorySource, matchedTransaction, similarity } = inferCategory(
+    { text: comparableText, partner, type, amount },
+    existingTransactions
+  );
+
+  const debugReason = debug
+    ? buildDebugReason({ partner, partnerSource, categorySource, matchedTransaction, similarity })
+    : null;
+
+  return { partner, category, partnerSource, categorySource, debugReason };
 }
 
 export function parseCsvRows(text, delimiter = ';') {
@@ -275,7 +507,10 @@ function readCell(row, index) {
   return String(row[index] || '').trim();
 }
 
-export function parseBankCsv(text, { fillUnknowns = true, existingTransactions = [], debug = false, fileName = null } = {}) {
+export function parseBankCsv(
+  text,
+  { fillUnknowns = true, existingTransactions = [], debug = false, fileName = null } = {}
+) {
   const learnedRules = buildLearnedRules(existingTransactions);
   const rows = parseCsvRows(text);
   const header = findHeader(rows);
@@ -299,11 +534,15 @@ export function parseBankCsv(text, { fillUnknowns = true, existingTransactions =
       debugLog.push('  (keine — alle vorhandenen Transaktionen haben Standard-Kategorie/Partner)');
     } else {
       learnedRules.forEach((r, i) => {
-        debugLog.push(`[${i + 1}] ${r.category} / ${r.partner} → Keywords: ${r.keywords.join(', ')}`);
+        debugLog.push(
+          `[${i + 1}] ${r.category} / ${r.partner} → Keywords: ${r.keywords.join(', ')}`
+        );
       });
     }
     debugLog.push('');
-    debugLog.push(`--- Öffentliche Regeln: ${PUBLIC_PARTNER_RULES.length} | Generische Regeln: ${GENERIC_RULES.length} ---`);
+    debugLog.push(
+      `--- Öffentliche Regeln: ${PUBLIC_PARTNER_RULES.length} | Generische Regeln: ${GENERIC_RULES.length} ---`
+    );
     debugLog.push('');
     debugLog.push('--- Zeilenanalyse ---');
   }
@@ -311,19 +550,15 @@ export function parseBankCsv(text, { fillUnknowns = true, existingTransactions =
   if (!header) {
     return {
       transactions: [],
-      warnings: ['Keine passende CSV-Kopfzeile gefunden. Erwartet werden Buchungstag, Buchungstext und Umsatz in EUR.'],
+      warnings: [
+        'Keine passende CSV-Kopfzeile gefunden. Erwartet werden Buchungstag, Buchungstext und Umsatz in EUR.',
+      ],
       debugLog,
     };
   }
 
   const transactions = [];
   const { columnIndexes, headerIndex } = header;
-
-  const allRulesWithSource = debug ? [
-    ...learnedRules.map((r) => ({ ...r, _source: 'gelernt' })),
-    ...PUBLIC_PARTNER_RULES.map((r) => ({ ...r, _source: 'öffentlich' })),
-    ...GENERIC_RULES.map((r) => ({ ...r, _source: 'generisch' })),
-  ] : null;
 
   for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
     const row = rows[rowIndex];
@@ -337,15 +572,32 @@ export function parseBankCsv(text, { fillUnknowns = true, existingTransactions =
     const signedAmount = parseGermanAmount(rawAmount);
 
     if (!date || signedAmount === null || signedAmount === 0 || !purpose) {
-      warnings.push(`Zeile ${rowIndex + 1} wurde uebersprungen, weil Datum, Buchungstext oder Betrag fehlen.`);
-      if (debug) debugLog.push(`\nZeile ${rowIndex + 1} | übersprungen (Datum, Betrag oder Buchungstext fehlt)`);
+      warnings.push(
+        `Zeile ${rowIndex + 1} wurde uebersprungen, weil Datum, Buchungstext oder Betrag fehlen.`
+      );
+      if (debug)
+        debugLog.push(
+          `\nZeile ${rowIndex + 1} | übersprungen (Datum, Betrag oder Buchungstext fehlt)`
+        );
       continue;
     }
 
     const type = signedAmount < 0 ? 'expense' : 'income';
-    const inferred = inferTransactionMetadata(purpose, type, learnedRules);
+    const amount = Math.abs(signedAmount);
+    const inferred = inferImportMetadata({
+      bookingText: purpose,
+      type,
+      amount,
+      existingTransactions,
+      learnedRules,
+      debug,
+    });
     const category = inferred.category || (fillUnknowns ? DEFAULT_IMPORT_CATEGORY : '');
     const partner = inferred.partner || (fillUnknowns ? DEFAULT_IMPORT_PARTNER : '');
+    const isDuplicate = isDuplicateTransaction(
+      { date, purpose, type, amount, recurrence: 'once' },
+      existingTransactions
+    );
 
     if (debug) {
       const { counterparty, bookingContent } = extractBookingParts(purpose);
@@ -354,45 +606,19 @@ export function parseBankCsv(text, { fillUnknowns = true, existingTransactions =
       if (counterparty) debugLog.push(`  Auftraggeber/Empfänger: "${counterparty}"`);
       if (bookingContent) debugLog.push(`  Buchungstext: "${bookingContent}"`);
       debugLog.push(`  Typ: ${type === 'income' ? 'Einnahme' : 'Ausgabe'}`);
-
-      let matchSource = null;
-      let matchedKeyword = null;
-      let matchPart = null;
-
-      const parts = [
-        { label: 'Auftraggeber', text: counterparty },
-        { label: 'Buchungstext', text: bookingContent },
-        { label: 'Volltext', text: purpose },
-      ];
-
-      for (const { label, text } of parts) {
-        if (!text) continue;
-        const norm = normalizeText(text);
-        const matched = allRulesWithSource.find((c) => {
-          if (c.type && c.type !== type) return false;
-          return c.keywords.some((kw) => matchesKeyword(norm, kw));
-        });
-        if (matched) {
-          matchSource = matched._source;
-          matchedKeyword = matched.keywords.find((kw) => matchesKeyword(norm, kw));
-          matchPart = label;
-          debugLog.push(`  → MATCH via ${label} (${matched._source}): ${matched.category} / ${matched.partner} | Keyword: "${matchedKeyword}"`);
-          break;
-        }
-      }
-      if (!matchSource) {
-        debugLog.push(`  → Kein Match → Fallback: ${fillUnknowns ? `${DEFAULT_IMPORT_CATEGORY} / ${DEFAULT_IMPORT_PARTNER}` : 'leer'}`);
-      }
-      debugLog.push(`  Ergebnis: Kategorie=${category}, Partner=${partner}`);
+      debugLog.push(`  ${inferred.debugReason}`);
+      debugLog.push(
+        `  Ergebnis: Kategorie=${category}, Partner=${partner}${isDuplicate ? ' | DUPLIKAT' : ''}`
+      );
 
       AppLogger.log('CSV-ZEILE', {
         row: rowIndex + 1,
         purpose,
         category,
         partner,
-        matchSource,
-        matchedKeyword,
-        matchPart,
+        partnerSource: inferred.partnerSource,
+        categorySource: inferred.categorySource,
+        isDuplicate,
       });
     }
 
@@ -400,12 +626,13 @@ export function parseBankCsv(text, { fillUnknowns = true, existingTransactions =
       sourceRow: rowIndex + 1,
       date,
       type,
-      amount: Math.abs(signedAmount),
+      amount,
       purpose,
       category,
       partner,
       recurrence: 'once',
-      matchedRule: inferred.matchedRule,
+      isDuplicate,
+      debugInfo: inferred.debugReason,
     });
   }
 
@@ -421,6 +648,7 @@ export function toTransactionFields(importDraft) {
   const fields = { ...importDraft };
   delete fields.importId;
   delete fields.sourceRow;
-  delete fields.matchedRule;
+  delete fields.isDuplicate;
+  delete fields.debugInfo;
   return fields;
 }

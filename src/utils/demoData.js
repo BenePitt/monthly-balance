@@ -45,7 +45,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-01-01',
       type: 'expense',
-      amount: 89.50,
+      amount: 89.5,
       purpose: 'KFZ-Versicherung',
       category: 'Versicherung',
       partner: 'Versicherung AG',
@@ -54,7 +54,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-01-07',
       type: 'expense',
-      amount: 64.30,
+      amount: 64.3,
       purpose: 'Wocheneinkauf',
       category: 'Lebensmittel',
       partner: 'Supermarkt',
@@ -63,7 +63,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-01-14',
       type: 'expense',
-      amount: 58.90,
+      amount: 58.9,
       purpose: 'Wocheneinkauf',
       category: 'Lebensmittel',
       partner: 'Supermarkt',
@@ -72,7 +72,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-02-03',
       type: 'expense',
-      amount: 120.00,
+      amount: 120.0,
       purpose: 'Arztbesuch',
       category: 'Gesundheit',
       partner: 'Arztpraxis',
@@ -81,7 +81,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-02-20',
       type: 'expense',
-      amount: 250.00,
+      amount: 250.0,
       purpose: 'Winterjacke',
       category: 'Kleidung',
       partner: 'Bekleidungsgeschäft',
@@ -90,7 +90,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-03-15',
       type: 'income',
-      amount: 500.00,
+      amount: 500.0,
       purpose: 'Steuerrückerstattung',
       category: 'Sonstiges',
       partner: 'Finanzamt',
@@ -99,7 +99,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-04-01',
       type: 'expense',
-      amount: 45.00,
+      amount: 45.0,
       purpose: 'Streaming-Dienst',
       category: 'Freizeit',
       partner: 'Streaming AG',
@@ -108,7 +108,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-05-07',
       type: 'expense',
-      amount: 54.90,
+      amount: 54.9,
       purpose: 'Wocheneinkauf',
       category: 'Lebensmittel',
       partner: 'Supermarkt',
@@ -117,7 +117,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-05-20',
       type: 'expense',
-      amount: 180.00,
+      amount: 180.0,
       purpose: 'Restaurantbesuch',
       category: 'Freizeit',
       partner: 'Restaurant',
@@ -126,7 +126,7 @@ export function createDemoTransactions() {
     createTransaction({
       date: '2026-06-10',
       type: 'expense',
-      amount: 320.00,
+      amount: 320.0,
       purpose: 'Urlaub Anzahlung',
       category: 'Urlaub',
       partner: 'Reisebüro',

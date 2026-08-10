@@ -7,7 +7,10 @@ import { DEFAULT_ACCOUNT_ID } from './account';
  * @param {Object} fields - Transaction fields
  * @returns {Object} Complete transaction object
  */
-export function createTransaction({ date, type, amount, purpose, category, partner, recurrence, accountId }, source = 'manuell') {
+export function createTransaction(
+  { date, type, amount, purpose, category, partner, recurrence, accountId },
+  source = 'manuell'
+) {
   const now = new Date().toISOString();
   const tx = {
     id: uuidv4(),
@@ -22,7 +25,16 @@ export function createTransaction({ date, type, amount, purpose, category, partn
     createdAt: now,
     updatedAt: now,
   };
-  AppLogger.log('TRANSAKTION ANGELEGT', { source, id: tx.id, date, type, amount: tx.amount, purpose, category, partner });
+  AppLogger.log('TRANSAKTION ANGELEGT', {
+    source,
+    id: tx.id,
+    date,
+    type,
+    amount: tx.amount,
+    purpose,
+    category,
+    partner,
+  });
   return tx;
 }
 
@@ -32,7 +44,11 @@ export function createTransaction({ date, type, amount, purpose, category, partn
 export function updateTransaction(transaction, changes) {
   const changedFields = {};
   for (const [key, newVal] of Object.entries(changes)) {
-    if (key !== 'updatedAt' && transaction[key] !== undefined && String(transaction[key]) !== String(newVal)) {
+    if (
+      key !== 'updatedAt' &&
+      transaction[key] !== undefined &&
+      String(transaction[key]) !== String(newVal)
+    ) {
       changedFields[key] = [transaction[key], newVal];
     }
   }

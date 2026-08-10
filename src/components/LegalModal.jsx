@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { legalData } from '../legal/legalData';
 
 const privacyPolicyLinks = {
-  github: 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+  github:
+    'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
   fastly: 'https://www.fastly.com/privacy',
   baylda: 'https://www.lda.bayern.de/',
 };
@@ -12,7 +13,9 @@ function ContactDetails() {
     <>
       <p>{legalData.name}</p>
       <p>{legalData.street}</p>
-      <p>{legalData.zip} {legalData.city}</p>
+      <p>
+        {legalData.zip} {legalData.city}
+      </p>
       {legalData.phone && <p>Telefon: {legalData.phone}</p>}
       {legalData.email && (
         <p>
@@ -25,7 +28,12 @@ function ContactDetails() {
       {legalData.website && (
         <p>
           Website:{' '}
-          <a href={legalData.website} target="_blank" rel="noopener noreferrer" className="legal-link">
+          <a
+            href={legalData.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="legal-link"
+          >
             {legalData.website}
           </a>
         </p>
@@ -56,7 +64,12 @@ function ImpressumContent() {
         {legalData.website && (
           <p>
             Website:{' '}
-            <a href={legalData.website} target="_blank" rel="noopener noreferrer" className="legal-link">
+            <a
+              href={legalData.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="legal-link"
+            >
               {legalData.website}
             </a>
           </p>
@@ -66,19 +79,19 @@ function ImpressumContent() {
       <section>
         <h3>Haftungsausschluss</h3>
         <p>
-          Diese Webseite ist ein privates Freizeitprojekt ohne kommerziellen Hintergrund.
-          Es besteht kein Anspruch auf Vollständigkeit oder Aktualität.
+          Diese Webseite ist ein privates Freizeitprojekt ohne kommerziellen Hintergrund. Es besteht
+          kein Anspruch auf Vollständigkeit oder Aktualität.
         </p>
       </section>
 
       <section>
         <h3>Urheberrecht</h3>
         <p>
-          Die eigenen Inhalte dieser Webseite unterliegen dem deutschen Urheberrecht.
-          Eine Vervielfältigung, Bearbeitung oder Verbreitung außerhalb der Grenzen
-          des Urheberrechts bedarf der vorherigen Zustimmung des jeweiligen Rechteinhabers.
-          Es besteht keine Verbindung zu Markeninhabern von Namen, Logos oder Daten,
-          die im Rahmen dieses privaten Projekts beispielhaft genannt oder verarbeitet werden.
+          Die eigenen Inhalte dieser Webseite unterliegen dem deutschen Urheberrecht. Eine
+          Vervielfältigung, Bearbeitung oder Verbreitung außerhalb der Grenzen des Urheberrechts
+          bedarf der vorherigen Zustimmung des jeweiligen Rechteinhabers. Es besteht keine
+          Verbindung zu Markeninhabern von Namen, Logos oder Daten, die im Rahmen dieses privaten
+          Projekts beispielhaft genannt oder verarbeitet werden.
         </p>
       </section>
     </div>
@@ -98,11 +111,10 @@ function DatenschutzContent() {
       <section>
         <h3>2. Erhebung und Verarbeitung</h3>
         <p>
-          Diese Webseite erhebt und speichert durch den Betreiber keine personenbezogenen
-          Daten. Es werden keine Cookies gesetzt, kein Tracking durchgeführt und keine
-          Nutzerdaten an Dritte weitergegeben. Eingegebene oder importierte Finanzdaten
-          werden in der statischen Webversion nur lokal im Arbeitsspeicher des Browsers
-          verarbeitet.
+          Diese Webseite erhebt und speichert durch den Betreiber keine personenbezogenen Daten. Es
+          werden keine Cookies gesetzt, kein Tracking durchgeführt und keine Nutzerdaten an Dritte
+          weitergegeben. Eingegebene oder importierte Finanzdaten werden in der statischen
+          Webversion nur lokal im Arbeitsspeicher des Browsers verarbeitet.
         </p>
       </section>
 
@@ -114,8 +126,14 @@ function DatenschutzContent() {
               <strong>{service.name}</strong>
               {service.url && (
                 <>
-                  {' '}(
-                  <a href={service.url} target="_blank" rel="noopener noreferrer" className="legal-link">
+                  {' '}
+                  (
+                  <a
+                    href={service.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="legal-link"
+                  >
                     {service.url}
                   </a>
                   )
@@ -130,22 +148,31 @@ function DatenschutzContent() {
       <section>
         <h3>4. Hosting</h3>
         <p>
-          Diese Webseite kann über GitHub Pages bereitgestellt werden. Anbieter ist GitHub,
-          Inc., ein Unternehmen von Microsoft. Beim Abruf der Seite können technisch
-          erforderliche Daten wie die IP-Adresse, Datum und Uhrzeit der Anfrage, Browser-
-          und Betriebssysteminformationen sowie die angeforderte Ressource verarbeitet werden.
-          GitHub Pages nutzt zur Auslieferung unter anderem ein Content Delivery Network von
-          Fastly. Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO,
-          da ein berechtigtes Interesse an der sicheren und effizienten Bereitstellung der
-          Webseite besteht.
+          Diese Webseite kann über GitHub Pages bereitgestellt werden. Anbieter ist GitHub, Inc.,
+          ein Unternehmen von Microsoft. Beim Abruf der Seite können technisch erforderliche Daten
+          wie die IP-Adresse, Datum und Uhrzeit der Anfrage, Browser- und
+          Betriebssysteminformationen sowie die angeforderte Ressource verarbeitet werden. GitHub
+          Pages nutzt zur Auslieferung unter anderem ein Content Delivery Network von Fastly. Die
+          Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO, da ein berechtigtes
+          Interesse an der sicheren und effizienten Bereitstellung der Webseite besteht.
         </p>
         <p>
           Weitere Informationen finden Sie in der{' '}
-          <a href={privacyPolicyLinks.github} target="_blank" rel="noopener noreferrer" className="legal-link">
+          <a
+            href={privacyPolicyLinks.github}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="legal-link"
+          >
             GitHub Privacy Policy
-          </a>
-          {' '}und der{' '}
-          <a href={privacyPolicyLinks.fastly} target="_blank" rel="noopener noreferrer" className="legal-link">
+          </a>{' '}
+          und der{' '}
+          <a
+            href={privacyPolicyLinks.fastly}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="legal-link"
+          >
             Fastly Privacy Policy
           </a>
           .
@@ -155,15 +182,20 @@ function DatenschutzContent() {
       <section>
         <h3>5. Ihre Rechte</h3>
         <p>
-          Sie haben nach Maßgabe der DSGVO insbesondere Rechte auf Auskunft,
-          Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch.
-          Da diese Webseite durch den Betreiber keine personenbezogenen Daten erhebt,
-          ist eine entsprechende Anfrage voraussichtlich gegenstandslos.
+          Sie haben nach Maßgabe der DSGVO insbesondere Rechte auf Auskunft, Berichtigung, Löschung,
+          Einschränkung der Verarbeitung und Widerspruch. Da diese Webseite durch den Betreiber
+          keine personenbezogenen Daten erhebt, ist eine entsprechende Anfrage voraussichtlich
+          gegenstandslos.
         </p>
         <p>
-          Für Beschwerden können Sie sich an die zuständige Datenschutzaufsichtsbehörde
-          wenden, in Bayern insbesondere an das{' '}
-          <a href={privacyPolicyLinks.baylda} target="_blank" rel="noopener noreferrer" className="legal-link">
+          Für Beschwerden können Sie sich an die zuständige Datenschutzaufsichtsbehörde wenden, in
+          Bayern insbesondere an das{' '}
+          <a
+            href={privacyPolicyLinks.baylda}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="legal-link"
+          >
             Bayerische Landesamt für Datenschutzaufsicht
           </a>
           .
@@ -196,7 +228,12 @@ export function LegalModal({ view, onClose }) {
       >
         <header className="legal-modal-header">
           <h2 id="legal-modal-title">{title}</h2>
-          <button type="button" className="legal-close-button" onClick={onClose} aria-label="Modal schließen">
+          <button
+            type="button"
+            className="legal-close-button"
+            onClick={onClose}
+            aria-label="Modal schließen"
+          >
             ×
           </button>
         </header>

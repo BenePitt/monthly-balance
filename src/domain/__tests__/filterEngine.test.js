@@ -15,9 +15,27 @@ const tx = (overrides) => ({
 
 const transactions = [
   tx({ id: '1', purpose: 'Wocheneinkauf', category: 'Lebensmittel', partner: 'Supermarkt' }),
-  tx({ id: '2', purpose: 'Monatsmiete', category: 'Wohnen', partner: 'Vermieter', type: 'expense' }),
-  tx({ id: '3', purpose: 'Gehalt Mai', category: 'Gehalt', partner: 'Arbeitgeber GmbH', type: 'income' }),
-  tx({ id: '4', purpose: 'Einkauf Drogerie', category: 'Lebensmittel', partner: 'Drogerie', type: 'expense' }),
+  tx({
+    id: '2',
+    purpose: 'Monatsmiete',
+    category: 'Wohnen',
+    partner: 'Vermieter',
+    type: 'expense',
+  }),
+  tx({
+    id: '3',
+    purpose: 'Gehalt Mai',
+    category: 'Gehalt',
+    partner: 'Arbeitgeber GmbH',
+    type: 'income',
+  }),
+  tx({
+    id: '4',
+    purpose: 'Einkauf Drogerie',
+    category: 'Lebensmittel',
+    partner: 'Drogerie',
+    type: 'expense',
+  }),
 ];
 
 describe('applyFilters', () => {

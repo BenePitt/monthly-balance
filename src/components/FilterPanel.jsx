@@ -88,7 +88,8 @@ export default function FilterPanel({ onResetAll, hasColumnFilters = false }) {
 
       {allCategories.length === 0 && allPartners.length === 0 && (
         <p className="filter-empty-hint">
-          Noch keine Transaktionen vorhanden. Erfassen Sie zunächst Transaktionen, um Filter zu verwenden.
+          Noch keine Transaktionen vorhanden. Erfassen Sie zunächst Transaktionen, um Filter zu
+          verwenden.
         </p>
       )}
     </div>
