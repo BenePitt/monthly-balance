@@ -6,6 +6,7 @@ import {
   calculateDayBalance,
   calculateDailyPeriodStats,
   calculateStartBalanceFromCurrentBalance,
+  calculateCurrentBalance,
   calculatePeriodStats,
   calculateDimensionTotals,
   getDaysInRange,
@@ -247,6 +248,29 @@ describe('calculateStartBalanceFromCurrentBalance', () => {
     );
 
     expect(startBalance).toBe(500);
+  });
+});
+
+describe('calculateCurrentBalance', () => {
+  it('gibt 0 zurueck, wenn keine Transaktionen vorhanden sind', () => {
+    expect(calculateCurrentBalance([], 2026, 6)).toBe(0);
+  });
+
+  it('summiert die Bewegungen ab der fruehesten Transaktion bis zum Stichmonat', () => {
+    const transactions = [
+      income('2026-01-01', 3200, 'monthly'),
+      expense('2026-01-01', 950, 'monthly'),
+      expense('2026-02-10', 100, 'once'),
+    ];
+
+    // Jan: +3200-950=2250, Feb: +3200-950-100=2150, Mar: +3200-950=2250 -> 6650
+    expect(calculateCurrentBalance(transactions, 2026, 3)).toBe(6650);
+  });
+
+  it('gibt 0 zurueck, wenn der Stichmonat vor der ersten Transaktion liegt', () => {
+    const transactions = [income('2026-05-01', 100, 'once')];
+
+    expect(calculateCurrentBalance(transactions, 2026, 1)).toBe(0);
   });
 });
 

@@ -1,10 +1,17 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { calculateCurrentBalance } from '../domain/balanceCalculator';
 import { formatCurrency } from '../utils/formatting';
 
 function KennzahlenPanel() {
-  const { periodStats } = useApp();
+  const { periodStats, filteredTransactions, dateRange } = useApp();
   const { totalIncome, totalExpense, totalBalance, avgMonthlyBalance } = periodStats;
+  const { endYear, endMonth } = dateRange;
+
+  const currentBalance = useMemo(
+    () => calculateCurrentBalance(filteredTransactions, endYear, endMonth),
+    [filteredTransactions, endYear, endMonth]
+  );
 
   return (
     <div className="kennzahlen-panel">
@@ -27,6 +34,11 @@ function KennzahlenPanel() {
         label="Ø Monatsbilanz"
         value={formatCurrency(avgMonthlyBalance)}
         className={avgMonthlyBalance >= 0 ? 'kpi-balance-pos' : 'kpi-balance-neg'}
+      />
+      <KennzahlCard
+        label="Kontostand"
+        value={formatCurrency(currentBalance)}
+        className={currentBalance >= 0 ? 'kpi-balance-pos' : 'kpi-balance-neg'}
       />
     </div>
   );

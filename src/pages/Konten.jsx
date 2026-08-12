@@ -1,10 +1,28 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { DEFAULT_ACCOUNT_ID } from '../domain/account';
-import { formatIban } from '../utils/formatting';
+import { calculateCurrentBalance } from '../domain/balanceCalculator';
+import { formatCurrency, formatIban } from '../utils/formatting';
 
 export default function Konten() {
-  const { accounts, addAccount, renameAccount, updateAccountIban, deleteAccount } = useApp();
+  const { accounts, transactions, addAccount, renameAccount, updateAccountIban, deleteAccount } =
+    useApp();
+
+  const accountBalances = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const balances = {};
+    for (const account of accounts) {
+      const accountTransactions = transactions.filter((t) => t.accountId === account.id);
+      balances[account.id] = calculateCurrentBalance(
+        accountTransactions,
+        currentYear,
+        currentMonth
+      );
+    }
+    return balances;
+  }, [accounts, transactions]);
   const [newAccountName, setNewAccountName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
@@ -171,6 +189,21 @@ export default function Konten() {
                       )}
                     </>
                   )}
+                </div>
+
+                <div style={{ fontSize: '0.85rem' }}>
+                  Kontostand:{' '}
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color:
+                        accountBalances[account.id] >= 0
+                          ? 'var(--color-balance-pos)'
+                          : 'var(--color-balance-neg)',
+                    }}
+                  >
+                    {formatCurrency(accountBalances[account.id])}
+                  </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

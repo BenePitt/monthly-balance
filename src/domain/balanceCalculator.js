@@ -257,6 +257,36 @@ export function calculatePeriodStats(transactions, startYear, startMonth, endYea
 }
 
 /**
+ * Calculates the running account balance (income − expense, correctly
+ * expanding recurring "monthly" transactions across every month they apply
+ * to) accumulated from the earliest transaction through the given end
+ * month. Returns 0 if there are no transactions.
+ */
+export function calculateCurrentBalance(transactions, throughYear, throughMonth) {
+  if (transactions.length === 0) return 0;
+
+  let earliestYear = Infinity;
+  let earliestMonth = Infinity;
+  for (const t of transactions) {
+    const [year, month] = t.date.split('-').map(Number);
+    if (year < earliestYear || (year === earliestYear && month < earliestMonth)) {
+      earliestYear = year;
+      earliestMonth = month;
+    }
+  }
+
+  if (
+    earliestYear > throughYear ||
+    (earliestYear === throughYear && earliestMonth > throughMonth)
+  ) {
+    return 0;
+  }
+
+  return calculatePeriodStats(transactions, earliestYear, earliestMonth, throughYear, throughMonth)
+    .totalBalance;
+}
+
+/**
  * Groups transactions for a month by a given dimension (category, purpose, partner).
  * Returns an array of { label, income, expense, balance }.
  */

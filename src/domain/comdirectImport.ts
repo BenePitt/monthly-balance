@@ -54,28 +54,38 @@ function partyName(transaction: ComdirectTransaction, ownIban: string): string {
   return 'Unbekannt';
 }
 
-// Comdirect's remittanceInfo concatenates fixed SEPA purpose lines, each
-// prefixed with a sequential 2-digit line number ("01", "02", "03", …) and
-// right-padded with spaces, e.g. "01Hungriges Herz, Muenchen  DE       02Karte
-// Nr. 1234 …". This strips those prefixes and collapses the padding. Markers
-// are only removed when found in strict sequence (01, then 02, then 03, …)
-// right after whitespace/start-of-string — this avoids mistaking incidental
-// digit pairs (e.g. "1234" in a card number) for a line marker. Text without
-// this line-number format (e.g. the transactionType fallback) passes through
-// unchanged aside from whitespace collapsing.
+// Comdirect's remittanceInfo concatenates fixed-width SEPA purpose segments:
+// each segment is a sequential 2-digit line number ("01", "02", "03", …)
+// followed by exactly 35 characters of content, right-padded with spaces
+// (37 characters per segment), e.g. "01Hungriges Herz, Muenchen  DE       "
+// + "02Karte Nr. 1234 …". Segment boundaries are derived from this fixed
+// width rather than searched for via regex, which avoids mistaking
+// incidental digit pairs (e.g. "1234" in a card number) for a line marker.
+// Only the first segment's "01" prefix is verified positionally; every
+// following segment is simply the next 37-character slice, so a following
+// marker is trusted based on position instead of re-matched by content.
+// Text without this line-number format (e.g. the transactionType fallback)
+// passes through unchanged aside from whitespace collapsing.
+const SEGMENT_CONTENT_WIDTH = 35;
+const SEGMENT_MARKER_WIDTH = 2;
+const SEGMENT_WIDTH = SEGMENT_MARKER_WIDTH + SEGMENT_CONTENT_WIDTH;
+
 function cleanComdirectPurpose(text: string): string {
-  let result = text;
-  for (let n = 1; n <= 20; n += 1) {
-    const marker = String(n).padStart(2, '0');
-    const next = result.replace(new RegExp(`(^|\\s)${marker}(?=\\S)`), '$1');
-    // Markers are strictly sequential (01, 02, 03, …) with no gaps — if the
-    // next one in sequence isn't found, stop rather than keep guessing at
-    // higher numbers, which risks matching incidental digit pairs inside
-    // the remaining content (e.g. "1234" in a card number, or "2026" in a
-    // date) instead of a real line marker.
-    if (next === result) break;
-    result = next;
+  const segments: string[] = [];
+  let position = 0;
+  let sequenceNumber = 1;
+
+  while (position < text.length) {
+    const marker = String(sequenceNumber).padStart(2, '0');
+    if (text.slice(position, position + SEGMENT_MARKER_WIDTH) !== marker) break;
+
+    const segmentEnd = Math.min(position + SEGMENT_WIDTH, text.length);
+    segments.push(text.slice(position + SEGMENT_MARKER_WIDTH, segmentEnd));
+    position = segmentEnd;
+    sequenceNumber += 1;
   }
+
+  const result = segments.length > 0 ? segments.join('') + text.slice(position) : text;
   return result.replace(/\s+/g, ' ').trim();
 }
 
